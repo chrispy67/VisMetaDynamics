@@ -1,9 +1,9 @@
 function walker(nothing)
 %comments here 
+% Written and provided by Jim Pfaendtner of NC State University 
 %1D Langevin equation 
 %integrates using Bussi integrator:
 %Bussi and Parrinello, PRE, 2007, 056707
-
 %define parameters
 
 steps=1000000;

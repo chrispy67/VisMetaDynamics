@@ -13,14 +13,12 @@ import time
 #       - I already need to do that for something to interact with the integrator (mainscript)
 #   - I need to think about the scale of which tunable parameters can be explored. 
 #       - just playing with dummy numbers, some simulations are VERY slow.
-
-
+#   - How can I make this more object-oriented? I want to make it easy to turn metadynamics on and off. 
 
 # Define parameters
 steps = 10000
 iratio = 10
 mratio = 100
-movieflag = 10  # Set to 1 to make a movie
 x0 = 2.0
 T = 310  # Initial temperature | ADJUST
 dt = 0.005  # Time step
@@ -30,12 +28,9 @@ m = 1  # Mass
 
 # Subfunction to calculate PE and force
 def force(r, s, w, delta):
-    # OLD VALUES THAT WORK!
     V = V_x(r)
     F = V_x.deriv() #function notation is at odds with the potential one-liner 
     Fpot = -F(r)
-
-    # print(r) #info
 
     Fbias = np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2))) # Metadynamics
 
@@ -44,7 +39,7 @@ def force(r, s, w, delta):
     F = np.where(r < -np.pi, -100 * 4 * (r + np.pi), Fpot + Fbias)
     
     V = np.where(r > np.pi, 100 * (r - np.pi)**4, V)
-    F = np.where(r > np.pi, -100 * 4 * (r - np.pi), F)
+    F = np.where(r > np.pi, -100 * 4 * (r - np.pi), Fpot + Fbias)
 
     return V, F
 
@@ -76,19 +71,12 @@ V = np.zeros(steps + 1) # Making room for final potential
 hills = np.zeros(steps + 1)
 
 # Initial configuration
-
 q[0] = x0
 v0 = np.random.rand() - 0.5 #random initial potential
 p = v0 * m
 s = [0]
 v, f = force(q[0], 0, w, delta)
 E[0] = 0.5 * p**2 + v
-
-
-# Loop over number of steps
-if movieflag == 1:
-    os.makedirs('movie', exist_ok=True)
-
 
 
 # Plot 1D FES
@@ -102,13 +90,6 @@ vcalc, first = force(xlong, 0, w, delta)
 # plt.ylabel('F(s) (arb)', fontsize=16)
 # plt.grid()
 # plt.legend()
-
-# # INITIAL POINT! This will work with the animation
-# plt.plot(xlong, vcalc)
-# plt.plot([x0], [v], 'ro', markersize=10, markerfacecolor='r')
-# plt.xlabel('s')
-# plt.ylabel('F (arb)')
-
 
 frame = 0
 

@@ -18,7 +18,7 @@ def read_fes(file):
     infile.close()
     return x, y
 
-phi, energy = read_fes('fes-std.dat')
+phi, energy = read_fes('MD/fes-std.dat')
 
 
 #####---Evaluate the best fitting for polynomial function---#####
