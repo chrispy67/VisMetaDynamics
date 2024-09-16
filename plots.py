@@ -5,22 +5,26 @@ import matplotlib.animation as animation
 
 # - All of these functions should take in arrays and spit out a graph.
 #   - but what if I want it to update EACH FRAME and plot LIVE data?
-
-
-def update(x_data, y_data, frame, plot):
-    # for each frame, update the data stored on each artist.
-    x = x_data[:frame]
-    y = y_data [:frame]
-    # update the scatter plot:
-    data = np.stack([x, y]).T
-    plot.set_offsets(data)
-    # update the line plot:
-    return (plot, data)
+# - Function of time or function of steps??? time is certainly more interpretable
 
 # Universal values 
 plt.rcParams["axes.grid"] = True  # Enables grid for all plots
 
-#fx of time or fx of steps??? time is certainly more interpretable
+
+
+# This should work for updating both scatter and line plots. For later!
+def update(frame, x_data, y_data, obj, plot_type='scatter'):
+    # for each frame, update the data stored on each artist.
+    x = x_data[:frame]
+    y = y_data [:frame]
+    
+    if plot_type == 'scatter':
+        offsets = np.column_stack((x, y))
+        obj.set_offsets(offsets)
+    elif plot_type == 'line':
+        obj.set_data(x, y)
+    else:
+        raise ValueError('plot type not recognized')
 
 def hills_time(hills, time):
     fig, ax = plt.subplots()
@@ -38,7 +42,7 @@ def energy_time(energy, time):
     scat = ax.scatter(time[0], energy)
     return scat
 
-# this should be static
+# this should be static and doesn't need updates
 def fes(potential):
     x = np.linspace(-np.pi, np.pi, 100)
     V = V_x(x)
