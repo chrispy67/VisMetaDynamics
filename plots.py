@@ -28,24 +28,29 @@ def update(frame, x_data, y_data, obj, plot_type='scatter'):
 
 def hills_time(hills, time):
     fig, ax = plt.subplots()
-    scat = ax.scatter(time[0], hills[0])
-    return scat
+    scat = ax.scatter(time, hills)
+    return (fig, scat)
 
 def rads_time(rad, time):
     fig, ax = plt.subplots()
     scat = ax.scatter(time[0], rad[0])
-    return scat
-    
+    return (fig, scat)
+
 
 def energy_time(energy, time):
     fig, ax = plt.subplots()
     scat = ax.scatter(time[0], energy)
-    return scat
+    return (fig,scat)
 
 # this should be static and doesn't need updates
 def fes(potential):
+    fig, ax = plt.subplots()
     x = np.linspace(-np.pi, np.pi, 100)
     V = V_x(x)
-    plot = plt.plot(x, V)
-    return plot
+    plot = ax.plot(x, V)
+
+    ax.set(xlim=[-np.pi, np.pi], ylim=[0, 100], 
+        xlabel = 'phi (radians)',
+        ylabel='Change in Free Energy')
+    return (fig, plot)
 

@@ -3,9 +3,11 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import os
 from dipep_potential import V_x
-from plots import hills_time
-
+from plots import hills_time, fes   
+from src import config
 import time
+
+
 
 # Ideas:
 #   - put all the different types of plots im using for diagnostics into functions?
@@ -13,14 +15,15 @@ import time
 #       - I already need to do that for something to interact with the integrator (mainscript)
 #   - I need to think about the scale of which tunable parameters can be explored. 
 #       - just playing with dummy numbers, some simulations are VERY slow.
-#   - How can I make this more object-oriented? I want to make it easy to turn metadynamics on and off. 
+#       - Can I measure performance??
+#  
 
 # Define parameters
 steps = 10000
 iratio = 10
 mratio = 100
 x0 = 2.0
-T = 310  # Initial temperature | ADJUST
+T = 310  # Initial temperature | ADJUSTs
 dt = 0.005  # Time step
 t = 0  # Time
 m = 1  # Mass
@@ -32,7 +35,11 @@ def force(r, s, w, delta):
     F = V_x.deriv() #function notation is at odds with the potential one-liner 
     Fpot = -F(r)
 
-    Fbias = np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2))) # Metadynamics
+    if config.metad: #ON/OFF SWITCH
+        Fbias = np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2))) # Metadynamics
+
+    else:
+        Fbias = 0
 
     # Handle boundary conditions element-wise 
     V = np.where(r < -np.pi, 100 * (r + np.pi)**4, V) # V = 100(r + pi)^4 | I don't recognize this equation?
@@ -83,22 +90,16 @@ E[0] = 0.5 * p**2 + v
 xlong = np.arange(-np.pi, np.pi, 0.01)
 vcalc, first = force(xlong, 0, w, delta)
 
-# DIAGNOSTIC
-# plt.plot(xlong, vcalc, label='V(x)', linewidth=2)
-# plt.plot(xlong, first, label='F(x)', linewidth=2)
-# plt.xlabel('CV (s)', fontsize=16)
-# plt.ylabel('F(s) (arb)', fontsize=16)
-# plt.grid()
-# plt.legend()
-
+# Primary MD Engine
 frame = 0
-
 for i in range(steps):
 
     # Check if we should deposit a hill on the FES
-    if i % hfreq == 0: #if no remainder
-        s.append(q[i]) #append the step's potential to the empty sigma array?
+    if config.metad:
+        if i % hfreq == 0: #if no remainder
+            s.append(q[i]) #append to sigma array
 
+#####---Langevian integrator (https://doi.org/10.1103/PhysRevE.75.056707)---#####
     v, f = force(q[i], s, w, delta) # q[0] is already cast as x0
     R1 = np.random.rand() - 0.5
     R2 = np.random.rand() - 0.5
@@ -111,67 +112,37 @@ for i in range(steps):
 
     E[i + 1] = 0.5 * p**2 + v2 # Updated energy, classic Newtonian eq
 
-    if i % iratio == 0: 
-        bias = vcalc.copy()
-        if len(s) > 1: 
-            for k in range(len(xlong)):
-                bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
-                hills[k] = bias[k]
-                
-        v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
-        V[i] = v #THIS IS CRUCIAL
-        
-        print(f"""
+    if config.metad:
+        if i % iratio == 0: 
+            bias = vcalc.copy()
+            if len(s) > 1: 
+                for k in range(len(xlong)):
+                    bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
+                    hills[k] = bias[k]
+            print(f"""
         *******--- METADYNAMICS STEP ---*******
         step: {i}
         bias: {bias[k]}
         energy: {V[i]}
         radians: {q[i]}""")
+        v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
+        V[i] = v #THIS IS CRUCIAL
+
     else:
-        V[i] = v # we need to define an energy here
-        hills[i] = 0
+        V[i] = v # Store unbiased potential 
+        hills[i] = 0 # Add a zero to deposited hills 
     print(f"""
         step: {i}
         energy: {V[i]}
         radians: {q[i]}""")
 
-        #plot all deposited hills at once, but not at once?
-        # plt.plot(xlong, bias, linewidth=4, color='red', label='Bias')
-        # plt.plot(xlong, vcalc, linewidth=2, label='FES')
-        # plt.plot([q[i + 1]], [v], 'ro', markersize=10, markerfacecolor='r')
-        # plt.xlabel('CV (s)', fontsize=16)
-        # plt.ylabel('F(s) (arb)', fontsize=16)
 
+# Because we decided to increase the size of arrays and not handle errors..
+_time = np.arange(0, steps + 1) * dt * 10e-9 # ns
 
+hills_time(hills, _time)
+fes(V_x)
 
-#####---Visualize the Integrator---######
-# print(np.shape(V), np.shape(q))
-# fig, ax = plt.subplots()
-
-
-# scat = ax.scatter(q[0], V[0])
-# ax.plot(xlong, vcalc) #underlying FES
-
-# #close
-# def update(frame):
-#     radians = q[:frame:10]
-#     energy = V[:frame:10]
-#     data = np.stack([radians, energy]).T
-#     scat.set_offsets(data)  # Update plot with the new data
-
-# ax.set(xlim=[-np.pi, np.pi], ylim=[0, 100], 
-#     xlabel = 'phi (radians)',
-#     ylabel='Change in Free Energy')
-
-
-# ani = animation.FuncAnimation(fig=fig, func=update, frames=5000, interval=1)
-
-
-# plt.plot(q[0::10], V[0::10])
-
-x = np.linspace(0, len(hills), len(hills))
-
-
-hills_time(hills, x)
+plt.show()
 
 
