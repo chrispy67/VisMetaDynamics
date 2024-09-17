@@ -6,6 +6,7 @@ from dipep_potential import V_x
 from plots import hills_time, fes   
 from src import config
 import time
+from numba import jit
 
 
 
@@ -14,8 +15,6 @@ import time
 #       - Would make plotting and calling accessory scripts later really easy.
 #       - I already need to do that for something to interact with the integrator (mainscript)
 #   - I need to think about the scale of which tunable parameters can be explored. 
-#       - just playing with dummy numbers, some simulations are VERY slow.
-#       - Can I measure performance??
 #  
 
 # Define parameters
@@ -30,7 +29,9 @@ m = 1  # Mass
 
 
 # Subfunction to calculate PE and force
+@jit #complains about calling pbc() function, but INSANE performance speedup!
 def force(r, s, w, delta):
+    r = pbc(r)
     V = V_x(r)
     F = V_x.deriv() #function notation is at odds with the potential one-liner 
     Fpot = -F(r)
@@ -42,13 +43,27 @@ def force(r, s, w, delta):
         Fbias = 0
 
     # Handle boundary conditions element-wise 
-    V = np.where(r < -np.pi, 100 * (r + np.pi)**4, V) # V = 100(r + pi)^4 | I don't recognize this equation?
-    F = np.where(r < -np.pi, -100 * 4 * (r + np.pi), Fpot + Fbias)
+    # V = np.where(r < -np.pi, 100 * (r + np.pi)**4, V) # V = 100(r + pi)^4 | I don't recognize this equation?
+    # F = np.where(r < -np.pi, -100 * 4 * (r + np.pi), Fpot + Fbias)
     
-    V = np.where(r > np.pi, 100 * (r - np.pi)**4, V)
-    F = np.where(r > np.pi, -100 * 4 * (r - np.pi), Fpot + Fbias)
+    # V = np.where(r > np.pi, 100 * (r - np.pi)**4, V)
+    # F = np.where(r > np.pi, -100 * 4 * (r - np.pi), Fpot + Fbias)
 
-    return V, F
+    return V, Fpot + Fbias
+
+# Lean PBC function for improving performance, but is it correct??
+def pbc(r, bc=np.pi):
+    return ((r + bc) % (2 * bc)) - bc
+
+
+def integrator_performance(t_start, t_end):
+    delta_t = t_end - t_start
+    ns_day = (steps / delta_t) * dt * 86400 # nanoseconds per day
+    time_step = delta_t / steps
+    print('SIMULATION SUMMARY:')
+    print(f'nanoseconds per day: {ns_day:.3f}')
+    print(f'time per step: {time_step:.7f}')
+
 
 print("Parameters:")
 print(f" Number of steps: {steps}")
@@ -92,12 +107,17 @@ vcalc, first = force(xlong, 0, w, delta)
 
 # Primary MD Engine
 frame = 0
+t0 = time.time()
+
+# Given this is the most time-consuming part of the code, putting it in function like mdrun() might be helpful?
+# It's 
 for i in range(steps):
 
     # Check if we should deposit a hill on the FES
     if config.metad:
-        if i % hfreq == 0: #if no remainder
-            s.append(q[i]) #append to sigma array
+        s = np.append(s, q[i]) if i % hfreq == 0 else s #potentially MUCH faster one-liner?
+        # if i % hfreq == 0: #if no remainder
+        #     s.append(q[i]) #append to sigma array
 
 #####---Langevian integrator (https://doi.org/10.1103/PhysRevE.75.056707)---#####
     v, f = force(q[i], s, w, delta) # q[0] is already cast as x0
@@ -105,7 +125,7 @@ for i in range(steps):
     R2 = np.random.rand() - 0.5
 
     pplus = c1 * p + c2 * R1 # eq 12a from Bussi and Parrinello
-    q[i + 1] = q[i] + (pplus / m) * dt + f / m * (dt**2 / 2) # eq 12b
+    q[i + 1] += q[i] + (pplus / m) * dt + f / m * (dt**2 / 2) # eq 12b
     v2, f2 = force(q[i + 1], s, w, delta) # obtain updated potentials and forces from updated position 
     pminus = pplus + (f / 2 + f2 / 2) * dt # prev momentum?
     p = c1 * pminus + c2 * R2 # eq12a, but calculating current step's momentum 
@@ -119,28 +139,32 @@ for i in range(steps):
                 for k in range(len(xlong)):
                     bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
                     hills[k] = bias[k]
-            print(f"""
-        *******--- METADYNAMICS STEP ---*******
-        step: {i}
-        bias: {bias[k]}
-        energy: {V[i]}
-        radians: {q[i]}""")
-        v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
-        V[i] = v #THIS IS CRUCIAL
+    # consider making this a logger
+    #         print(f"""
+    #     *******--- METADYNAMICS STEP ---*******
+    #     step: {i}
+    #     bias: {bias[k]}
+    #     energy: {V[i]}
+    #     radians: {q[i]}""")
+    #     v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
+    #     V[i] = v #THIS IS CRUCIAL
 
-    else:
-        V[i] = v # Store unbiased potential 
-        hills[i] = 0 # Add a zero to deposited hills 
-    print(f"""
-        step: {i}
-        energy: {V[i]}
-        radians: {q[i]}""")
+    # else:
+    #     V[i] = v # Store unbiased potential 
+    #     hills[i] = 0 # Add a zero to deposited hills 
+    # print(f"""
+    #     step: {i}
+    #     energy: {V[i]}
+    #     radians: {q[i]}""")
 
+tplus = time.time()
+
+integrator_performance(t0, tplus)
 
 # Because we decided to increase the size of arrays and not handle errors..
-_time = np.arange(0, steps + 1) * dt * 10e-9 # ns
+sim_time = np.arange(0, steps + 1) * dt * 10e-9 # ns
 
-hills_time(hills, _time)
+hills_time(hills, sim_time)
 fes(V_x)
 
 plt.show()
