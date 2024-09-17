@@ -53,7 +53,7 @@ def force(r, s, w, delta):
 
 # Lean PBC function for improving performance, but is it correct??
 def pbc(r, bc=np.pi):
-    return ((r + bc) % (2 * bc)) - bc
+    return (((r + bc) % (2 * bc)) - bc)
 
 
 def integrator_performance(t_start, t_end):
@@ -140,22 +140,22 @@ for i in range(steps):
                     bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
                     hills[k] = bias[k]
     # consider making this a logger
-    #         print(f"""
-    #     *******--- METADYNAMICS STEP ---*******
-    #     step: {i}
-    #     bias: {bias[k]}
-    #     energy: {V[i]}
-    #     radians: {q[i]}""")
-    #     v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
-    #     V[i] = v #THIS IS CRUCIAL
+            print(f"""
+        *******--- METADYNAMICS STEP ---*******
+        step: {i}
+        bias: {bias[k]}
+        energy: {V[i]}
+        radians: {q[i]}""")
+        v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
+        V[i] = v #THIS IS CRUCIAL
 
-    # else:
-    #     V[i] = v # Store unbiased potential 
-    #     hills[i] = 0 # Add a zero to deposited hills 
-    # print(f"""
-    #     step: {i}
-    #     energy: {V[i]}
-    #     radians: {q[i]}""")
+    else:
+        V[i] = v # Store unbiased potential 
+        hills[i] = 0 # Add a zero to deposited hills 
+    print(f"""
+        step: {i}
+        energy: {V[i]}
+        radians: {q[i]}""")
 
 tplus = time.time()
 
