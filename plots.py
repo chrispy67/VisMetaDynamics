@@ -25,21 +25,29 @@ def update(frame, x_data, y_data, obj, plot_type='scatter'):
         obj.set_data(x, y)
     else:
         raise ValueError('plot type not recognized')
+    
+    # updates artist objects to be read for animation
+    return obj,
 
 def hills_time(hills, time):
     fig, ax = plt.subplots()
     scat = ax.scatter(time, hills)
+    ax.set(xlabel='time (ns)',
+        ylabel='hill height (kcal/mol)')
     return (fig, scat)
 
 def rads_time(rad, time):
     fig, ax = plt.subplots()
-    scat = ax.scatter(time[0], rad[0])
+    scat = ax.scatter(time, rad)
+    
+    ax.set(xlabel='time (ns)',
+        ylabel='dihedral angle (rad)')
     return (fig, scat)
 
 
 def energy_time(energy, time):
     fig, ax = plt.subplots()
-    scat = ax.scatter(time[0], energy)
+    scat = ax.scatter(time, energy)
     return (fig,scat)
 
 # this should be static and doesn't need updates
@@ -53,4 +61,32 @@ def fes(potential):
         xlabel = 'phi (radians)',
         ylabel='Change in Free Energy')
     return (fig, plot)
+
+
+def animate_md(V, hills, rads):
+
+    # copied from fes()
+    fig, ax = plt.subplots()
+    
+    # ensures equal length arrays
+    x = np.arange(-np.pi, np.pi, (2*np.pi / len(hills)))
+    
+    #pre plots
+    ax.plot(x, V_x(x), alpha=0.6, label='free energy surface')
+    # ax.plot(x, hills, linewidth=2, label='Bias')
+    
+    scatter = ax.scatter(rads, V, s=3, label='simulation steps') #to be updated
+
+    ani = animation.FuncAnimation(
+    fig=fig, 
+    func=update, 
+    frames=len(V), 
+    fargs=(rads, V, scatter, 'scatter'),
+    interval=1, 
+    blit=False)
+
+    plt.show() #must be inside the function, NOT walker.py to pass animation?
+    return ani  
+    
+
 

@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import os
 from dipep_potential import V_x
-from plots import hills_time, fes   
+from plots import hills_time, fes, rads_time, animate_md
 from src import config
 import time
-from numba import jit
+from numba import jit, njit
 
 
 
@@ -29,7 +29,6 @@ m = 1  # Mass
 
 
 # Subfunction to calculate PE and force
-@jit #complains about calling pbc() function, but INSANE performance speedup!
 def force(r, s, w, delta):
     r = pbc(r)
     V = V_x(r)
@@ -51,7 +50,7 @@ def force(r, s, w, delta):
 
     return V, Fpot + Fbias
 
-# Lean PBC function for improving performance, but is it correct??
+# Lean PBC function for improving performance
 def pbc(r, bc=np.pi):
     return (((r + bc) % (2 * bc)) - bc)
 
@@ -109,10 +108,7 @@ vcalc, first = force(xlong, 0, w, delta)
 frame = 0
 t0 = time.time()
 
-# Given this is the most time-consuming part of the code, putting it in function like mdrun() might be helpful?
-# It's 
 for i in range(steps):
-
     # Check if we should deposit a hill on the FES
     if config.metad:
         s = np.append(s, q[i]) if i % hfreq == 0 else s #potentially MUCH faster one-liner?
@@ -140,22 +136,22 @@ for i in range(steps):
                     bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
                     hills[k] = bias[k]
     # consider making this a logger
-            print(f"""
-        *******--- METADYNAMICS STEP ---*******
-        step: {i}
-        bias: {bias[k]}
-        energy: {V[i]}
-        radians: {q[i]}""")
+        #     print(f"""
+        # *******--- METADYNAMICS STEP ---*******
+        # step: {i}
+        # bias: {bias[k]}
+        # energy: {V[i]}
+        # radians: {q[i]}""")
         v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
         V[i] = v #THIS IS CRUCIAL
 
     else:
         V[i] = v # Store unbiased potential 
         hills[i] = 0 # Add a zero to deposited hills 
-    print(f"""
-        step: {i}
-        energy: {V[i]}
-        radians: {q[i]}""")
+    # print(f"""
+    #     step: {i}
+    #     energy: {V[i]}
+    #     radians: {q[i]}""")
 
 tplus = time.time()
 
@@ -164,9 +160,15 @@ integrator_performance(t0, tplus)
 # Because we decided to increase the size of arrays and not handle errors..
 sim_time = np.arange(0, steps + 1) * dt * 10e-9 # ns
 
-hills_time(hills, sim_time)
-fes(V_x)
 
+# hills_time(hills, sim_time)
+# fes(V_x)
+
+# rads_time(q, sim_time)
+
+animate_md(V, hills, q)
+
+plt.legend()
 plt.show()
 
 
