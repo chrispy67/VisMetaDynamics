@@ -7,7 +7,7 @@ import matplotlib.animation as animation
 #   - but what if I want it to update EACH FRAME and plot LIVE data?
 # - Function of time or function of steps??? time is certainly more interpretable
 
-# Universal values 
+# Universal values | font size, colors, etc
 plt.rcParams["axes.grid"] = True  # Enables grid for all plots
 
 
@@ -32,22 +32,28 @@ def update(frame, x_data, y_data, obj, plot_type='scatter'):
 def hills_time(hills, time):
     fig, ax = plt.subplots()
     scat = ax.scatter(time, hills)
-    ax.set(xlabel='time (ns)',
-        ylabel='hill height (kcal/mol)')
+
+    ax.set(xlabel='Time (ns)',
+        ylabel='hill height (kcal/mol)',
+        title='Evolution of Gaussian Height')
     return (fig, scat)
 
 def rads_time(rad, time):
     fig, ax = plt.subplots()
-    scat = ax.scatter(time, rad)
-    
-    ax.set(xlabel='time (ns)',
-        ylabel='dihedral angle (rad)')
-    return (fig, scat)
+    scat = ax.scatter(time, rad, s=2)
 
+    ax.set(xlabel='Time (ns)',
+        ylabel='Dihedral angle (rad)', 
+        title='Dihedral angle (φ) of Alanine Dipeptide')
+    return (fig, scat)
 
 def energy_time(energy, time):
     fig, ax = plt.subplots()
     scat = ax.scatter(time, energy)
+
+    ax.set(xlabel='Time (ns)',
+        ylabel='Energy (kcal/mol)', 
+        title='Potential Energy of Dihedral Angle')
     return (fig,scat)
 
 # this should be static and doesn't need updates
@@ -75,18 +81,24 @@ def animate_md(V, hills, rads):
     ax.plot(x, V_x(x), alpha=0.6, label='free energy surface')
     # ax.plot(x, hills, linewidth=2, label='Bias')
     
+    # need to change the size (volume of the Gaussian) for each deposition
     scatter = ax.scatter(rads, V, s=3, label='simulation steps') #to be updated
 
     ani = animation.FuncAnimation(
     fig=fig, 
     func=update, 
-    frames=len(V), 
+    frames=len(V), # might want to make this fxn of input param (mratio)?
     fargs=(rads, V, scatter, 'scatter'),
     interval=1, 
     blit=False)
 
-    plt.show() #must be inside the function, NOT walker.py to pass animation?
+    ax.set(xlim=[-np.pi, np.pi], ylim=[0, 100], 
+        xlabel = 'phi (radians)',
+        ylabel='Change in Free Energy',
+        title='Metadynamics Simulation of Alanine Dipeptide Dihedral Angle')
+
+    plt.show() #must be inside the function, NOT walker.py to pass animation
     return ani  
-    
+
 
 
