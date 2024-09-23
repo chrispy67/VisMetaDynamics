@@ -1,32 +1,48 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import os
 from dipep_potential import V_x
-from plots import hills_time, fes, rads_time, animate_md
+from plots import hills_time, fes, rads_time, animate_md, energy_time
 from src import config
 import time
-from numba import jit, njit
+import logging
+import argparse
 
+# Parse arguments and python logger options
+logger = logging.getLogger(__name__)
+parser = argparse.ArgumentParser(description='set log level')
+parser.add_argument('--log', default='INFO', help='log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)')
+args = parser.parse_args()
 
+# Helper function for logger
+def setup_logger(level):
+    logging.basicConfig(level=level,
+    format='%(levelname)s:%(message)s',
+    filename='MD_sim.log')
 
-# Ideas:
-#   - put all the different types of plots im using for diagnostics into functions?
-#       - Would make plotting and calling accessory scripts later really easy.
-#       - I already need to do that for something to interact with the integrator (mainscript)
-#   - I need to think about the scale of which tunable parameters can be explored. 
-#  
+log_level = getattr(logging, args.log.upper(), None)
+setup_logger(log_level)
+
+#####---User Inputs---#####
 
 # Define parameters
 steps = 10000
-iratio = 10
 mratio = 100
-x0 = 2.0
-T = 310  # Initial temperature | ADJUSTs
+x0 = 3
+T = 310  # Initial temperature | ADJUST
 dt = 0.005  # Time step
 t = 0  # Time
 m = 1  # Mass
 
+# Parameters for metadynamics
+w = 1.2 #ADJUST
+delta = 0.3 #ADJUST
+hfreq = 10 #ADJUST | hill deposition rate
+
+# Parameters for integrator
+gamma = 5.0
+beta = 1 / T / 1.987e-3  # assuming V is in kcal/mol
+c1 = np.exp(-gamma * dt / 2)
+c2 = np.sqrt((1 - c1**2) * m / beta)
 
 # Subfunction to calculate PE and force
 def force(r, s, w, delta):
@@ -36,23 +52,14 @@ def force(r, s, w, delta):
     Fpot = -F(r)
 
     if config.metad: #ON/OFF SWITCH
-        Fbias = np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2))) # Metadynamics
-
+        Fbias = np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2))) # Metadynamics eq
     else:
         Fbias = 0
-
-    # Handle boundary conditions element-wise 
-    # V = np.where(r < -np.pi, 100 * (r + np.pi)**4, V) # V = 100(r + pi)^4 | I don't recognize this equation?
-    # F = np.where(r < -np.pi, -100 * 4 * (r + np.pi), Fpot + Fbias)
-    
-    # V = np.where(r > np.pi, 100 * (r - np.pi)**4, V)
-    # F = np.where(r > np.pi, -100 * 4 * (r - np.pi), Fpot + Fbias)
-
     return V, Fpot + Fbias
 
 # Lean PBC function for improving performance
 def pbc(r, bc=np.pi):
-    return (((r + bc) % (2 * bc)) - bc)
+    return (((r + bc) % (2 * bc)) - bc) #one liner
 
 
 def integrator_performance(t_start, t_end):
@@ -63,7 +70,6 @@ def integrator_performance(t_start, t_end):
     print(f'nanoseconds per day: {ns_day:.3f}')
     print(f'time per step: {time_step:.7f}')
 
-
 print("Parameters:")
 print(f" Number of steps: {steps}")
 print(f" Initial x coord: {x0:.2f}")
@@ -71,27 +77,16 @@ print(f" Initial Potential: {V_x(x0)}")
 print(f" 'Temperature': {T:.2f}")
 print(f" Timestep: {dt:.2e}")
 
-# Parameters for integrator
-gamma = 5.0
-beta = 1 / T / 1.987e-3  # assuming V is in kcal/mol
-c1 = np.exp(-gamma * dt / 2)
-c2 = np.sqrt((1 - c1**2) * m / beta)
-
 print(f"\n  c1: {c1:.5f}")
 print(f"  c2: {c2:.5f}")
 
-# Metadynamics parameters
-w = 1.2 #ADJUST
-delta = 0.1 #ADJUST
-hfreq = 10 #ADJUST | hill deposition rate
-
-# Empty arrays to store things I need. 
+# Empty arrays to store information
 q = np.zeros(steps + 1) # Making room for final radian
 E = np.zeros(steps + 1) # Making room for final energy
 V = np.zeros(steps + 1) # Making room for final potential
 hills = np.zeros(steps + 1)
 
-# Initial configuration
+# Initial configurations 
 q[0] = x0
 v0 = np.random.rand() - 0.5 #random initial potential
 p = v0 * m
@@ -105,15 +100,12 @@ xlong = np.arange(-np.pi, np.pi, 0.01)
 vcalc, first = force(xlong, 0, w, delta)
 
 # Primary MD Engine
-frame = 0
 t0 = time.time()
 
 for i in range(steps):
     # Check if we should deposit a hill on the FES
     if config.metad:
         s = np.append(s, q[i]) if i % hfreq == 0 else s #potentially MUCH faster one-liner?
-        # if i % hfreq == 0: #if no remainder
-        #     s.append(q[i]) #append to sigma array
 
 #####---Langevian integrator (https://doi.org/10.1103/PhysRevE.75.056707)---#####
     v, f = force(q[i], s, w, delta) # q[0] is already cast as x0
@@ -121,54 +113,60 @@ for i in range(steps):
     R2 = np.random.rand() - 0.5
 
     pplus = c1 * p + c2 * R1 # eq 12a from Bussi and Parrinello
-    q[i + 1] += q[i] + (pplus / m) * dt + f / m * (dt**2 / 2) # eq 12b
+
+#####---WRAPPING NEW POSITION IN PBC FUNCTION IS CRUCIAL---#####
+    q[i + 1] += pbc(q[i] + (pplus / m) * dt + f / m * (dt**2 / 2)) # eq 12b w/ PBC effect
     v2, f2 = force(q[i + 1], s, w, delta) # obtain updated potentials and forces from updated position 
-    pminus = pplus + (f / 2 + f2 / 2) * dt # prev momentum?
+    pminus = pplus + (f / 2 + f2 / 2) * dt # prev momentum
     p = c1 * pminus + c2 * R2 # eq12a, but calculating current step's momentum 
 
     E[i + 1] = 0.5 * p**2 + v2 # Updated energy, classic Newtonian eq
 
     if config.metad:
-        if i % iratio == 0: 
+        if i % hfreq == 0: # ifreq vs hfreq? this USED to be ifreq
             bias = vcalc.copy()
             if len(s) > 1: 
                 for k in range(len(xlong)):
                     bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
                     hills[k] = bias[k]
-    # consider making this a logger
-        #     print(f"""
-        # *******--- METADYNAMICS STEP ---*******
-        # step: {i}
-        # bias: {bias[k]}
-        # energy: {V[i]}
-        # radians: {q[i]}""")
         v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
         V[i] = v #THIS IS CRUCIAL
 
     else:
         V[i] = v # Store unbiased potential 
-        hills[i] = 0 # Add a zero to deposited hills 
-    # print(f"""
-    #     step: {i}
-    #     energy: {V[i]}
-    #     radians: {q[i]}""")
+        hills[i] = 0 # Add a zero to deposited hills
+    
+    if i % mratio == 0: 
+        logger.info(f"""
+            step: {i}
+            energy: {V[i]}
+            radians: {q[i]}""")
+
+    if i % hfreq != 0: # records double steps
+        logger.info(f"""
+        *******--- METADYNAMICS STEP ---*******
+        step: {i}
+        bias: {bias[k]}
+        energy: {V[i]}
+        radians: {q[i]}""")
 
 tplus = time.time()
 
 integrator_performance(t0, tplus)
 
+def reweight_bias(hills, kT, bins=100):
+    pass
+
+
+#####---Plots as functions from plots.py---#####
+
 # Because we decided to increase the size of arrays and not handle errors..
 sim_time = np.arange(0, steps + 1) * dt * 10e-9 # ns
 
-
-# hills_time(hills, sim_time)
-# fes(V_x)
-
-# rads_time(q, sim_time)
-
+rads_time(q, sim_time)
+hills_time(hills, sim_time)
+energy_time(E, sim_time)
 animate_md(V, hills, q)
 
-plt.legend()
 plt.show()
-
 
