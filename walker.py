@@ -27,15 +27,15 @@ setup_logger(log_level)
 # Define parameters
 steps = 10000
 mratio = 100
-x0 = 3
-T = 310  # Initial temperature | ADJUST
+x0 = 1
+T = 350  # Initial temperature | ADJUST
 dt = 0.005  # Time step
 t = 0  # Time
 m = 1  # Mass
 
 # Parameters for metadynamics
 w = 1.2 #ADJUST
-delta = 0.3 #ADJUST
+delta = 0.1 #ADJUST
 hfreq = 10 #ADJUST | hill deposition rate
 
 # Parameters for integrator
@@ -70,20 +70,11 @@ def integrator_performance(t_start, t_end):
     print(f'nanoseconds per day: {ns_day:.3f}')
     print(f'time per step: {time_step:.7f}')
 
-print("Parameters:")
-print(f" Number of steps: {steps}")
-print(f" Initial x coord: {x0:.2f}")
-print(f" Initial Potential: {V_x(x0)}")
-print(f" 'Temperature': {T:.2f}")
-print(f" Timestep: {dt:.2e}")
-
-print(f"\n  c1: {c1:.5f}")
-print(f"  c2: {c2:.5f}")
-
 # Empty arrays to store information
 q = np.zeros(steps + 1) # Making room for final radian
 E = np.zeros(steps + 1) # Making room for final energy
 V = np.zeros(steps + 1) # Making room for final potential
+COLVAR = [] # empty array to resemble COLVAR file (time, CV, CV.bias)
 hills = np.zeros(steps + 1)
 
 # Initial configurations 
@@ -98,6 +89,13 @@ E[0] = 0.5 * p**2 + v
 # Plot 1D FES
 xlong = np.arange(-np.pi, np.pi, 0.01)
 vcalc, first = force(xlong, 0, w, delta)
+
+print("Parameters:")
+print(f" Number of steps: {steps}")
+print(f" Initial x coord: {x0:.2f}")
+print(f" Initial Potential: {V_x(x0)}")
+print(f" 'Temperature': {T:.2f}")
+print(f" Timestep: {dt:.2e}")
 
 # Primary MD Engine
 t0 = time.time()
@@ -125,30 +123,38 @@ for i in range(steps):
     if config.metad:
         if i % hfreq == 0: # ifreq vs hfreq? this USED to be ifreq
             bias = vcalc.copy()
+            logger.info(f"""
+        *******--- METADYNAMICS STEP ---*******
+        step: {i}
+        bias: {bias[k]}
+        energy: {V[i]}
+        radians: {q[i]}""")
+        else:
             if len(s) > 1: 
                 for k in range(len(xlong)):
                     bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
                     hills[k] = bias[k]
         v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
         V[i] = v #THIS IS CRUCIAL
-
+    
     else:
         V[i] = v # Store unbiased potential 
-        hills[i] = 0 # Add a zero to deposited hills
+        bias = 0
+        hills[i] = bias # Add a zero to deposited hills
     
     if i % mratio == 0: 
         logger.info(f"""
             step: {i}
             energy: {V[i]}
             radians: {q[i]}""")
-
-    if i % hfreq != 0: # records double steps
-        logger.info(f"""
-        *******--- METADYNAMICS STEP ---*******
-        step: {i}
-        bias: {bias[k]}
-        energy: {V[i]}
-        radians: {q[i]}""")
+        
+        # plot all deposited hills at once, but not at once?
+        # plt.plot(xlong, bias, linewidth=4, color='red', label='Bias')
+        # plt.plot(xlong, vcalc, linewidth=2, label='FES')
+        # plt.plot([q[i + 1]], [v], 'ro', markersize=10, markerfacecolor='r')
+        # plt.xlabel('CV (s)', fontsize=16)
+        # plt.ylabel('F(s) (arb)', fontsize=16)
+        # plt.show()
 
 tplus = time.time()
 
@@ -161,7 +167,10 @@ def reweight_bias(hills, kT, bins=100):
 #####---Plots as functions from plots.py---#####
 
 # Because we decided to increase the size of arrays and not handle errors..
-sim_time = np.arange(0, steps + 1) * dt * 10e-9 # ns
+
+#sim_time = np.arange(0, steps + 1) * dt * 10e-9 # ns
+# OR we can do thisfor legibility
+sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 
 rads_time(q, sim_time)
 hills_time(hills, sim_time)
