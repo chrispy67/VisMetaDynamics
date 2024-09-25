@@ -7,6 +7,7 @@ import time
 import logging
 import argparse
 
+
 # Parse arguments and python logger options
 logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(description='set log level')
@@ -172,10 +173,10 @@ def reweight_bias(hills, kT, bins=100):
 # OR we can do thisfor legibility
 sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 
-rads_time(q, sim_time)
-hills_time(hills, sim_time)
-energy_time(E, sim_time)
-animate_md(V, hills, q)
+# rads_time(q, sim_time)
+# hills_time(hills, sim_time)
+# energy_time(E, sim_time)
+# animate_md(V, hills, q)
 
-plt.show()
+# plt.show()
 
