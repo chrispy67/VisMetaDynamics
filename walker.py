@@ -176,7 +176,7 @@ sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 # rads_time(q, sim_time)
 # hills_time(hills, sim_time)
 # energy_time(E, sim_time)
-# animate_md(V, hills, q)
+animate_md(V, hills, q)
 
 # plt.show()
 

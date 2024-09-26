@@ -11,8 +11,10 @@ def home():
 
 @app.route('/run-script', methods=['GET'])
 def run_script():
-    try:
-        result = subprocess.run(['python3', 'walker.py'], capture_output=True)
+    try: #by default, this is using my local interpreter: /opt/homebrew/bin/python3
+        # since I don't have the budget for cloud computing costs, I may need to offer a way to
+        # select or use a different python environment if I want OTHER people to use this. 
+        result = subprocess.run(['python', 'walker.py'], capture_output=True, text=True)
         return jsonify({'output': result.stdout, "error": result.stderr})
     
     except Exception as e:
