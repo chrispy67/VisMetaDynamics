@@ -28,7 +28,7 @@ setup_logger(log_level)
 # Define parameters
 steps = 10000
 mratio = 100
-x0 = 1
+x0 = 2
 T = 350  # Initial temperature | ADJUST
 dt = 0.005  # Time step
 t = 0  # Time

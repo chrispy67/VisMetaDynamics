@@ -2,7 +2,6 @@ from flask import Flask, render_template, jsonify
 import subprocess
 
 app = Flask(__name__, template_folder='docs')
-print(app)
 
 @app.route('/')
 def home():
@@ -13,7 +12,9 @@ def home():
 def run_script():
     try: #by default, this is using my local interpreter: /opt/homebrew/bin/python3
         # since I don't have the budget for cloud computing costs, I may need to offer a way to
-        # select or use a different python environment if I want OTHER people to use this. 
+        # select or use a different python environment if I want OTHER people to use this.
+        # 
+        # Also, for some reason this isn't observed in the live github/repo.io URL? Pressing the button has no effect 
         result = subprocess.run(['python', 'walker.py'], capture_output=True, text=True)
         return jsonify({'output': result.stdout, "error": result.stderr})
     
