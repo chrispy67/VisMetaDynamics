@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- -->
+
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Run Python script from a button">
-    <title>Run Script Example</title>
+    <meta name="description" content="VisMetaDynamics">
+    <title>VisMetaDynamics</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
@@ -22,46 +26,87 @@
 
     <!-- Main content -->
     <section class="main-content">
-        <h1>Welcome to My Website</h1>
-        <p>This is a simple GitHub Pages template.</p>
+        <h1>Metadynamics Simulation Visualization</h1>
+        <h2>Introduction to Metadynamics </h2>
+
+    <!-- Sliders and Hyperparameters -->
+    <section>
+        <h2> Hyperparameter adjustments </h2>
     
-    <!-- Main content -->
-    <section class="main-content">
-        <h2> Here is a second heading</h2>
-    </section>
-
-    <!-- Main content -->
-    <section class="main-content">
-        <h1>Run Python Script Example</h1>
-        <p>Click the button to run the Python script:</p>
-
-        <!-- Button to run the script -->
-        <button id="runScriptBtn">Begin Simulation</button>
-        <p> With a small section to display an output:</p>
-        <!-- Area to display the output -->
-        <pre id="output"></pre>
-    </section>
-
-    <script>
-        // Function to send request to the Flask server when button is clicked
-        $('#runScriptBtn').click(function() {
-            $.get('/run-script', function(data) {
-                if (data.error) {
-                    $('#output').text("Error: " + data.error);
-                } else {
-                    $('#output').text(data.output);
-                }
-            });
-        });
-    </script>
-
-        <!-- Text Box Section -->
-        <div class="text-box">
-            <h2>Text Box Title</h2>
-            <p>This is a text box where you can add any information, images, or even embed videos!</p>
+        <div class="slider-container"
+                <label class="Temperature" for="myRange">Value:</label>
+                <input type="range" id="myRange" min="200" max="400" value="310" oninput="updateValue(this.value)">
+                <input type="text" id="sliderValue" value="310" readonly>
         </div>
-    </section>
+        </section>
 
+        <!-- THE BUTTON -->
+        <button id="runScriptBtn">Begin Simulation</button> 
+        <h2>
+            Results:
+        </h2>
+        <img
+            id="resultImage"
+            src="static/fes.png"
+            alt="Pre-determined Free Energy Surface"
+            width="600"
+            height="400" />
+
+            <h2>
+                Metadynamics simulation:
+            </h2>
+            <img 
+            id="resultGIF"
+            src="static/MD_simulation.gif"
+            alt="Metadynamics of alanine dipeptide dihedral angle"
+            width="600"
+            height="400" />
+
+<section>
+    <div id="output"></div>
+    <div class="grid-container">
+        <!-- Grid items will be dynamically inserted here -->
+    </div> 
+<!-- Anything ABOVE this line is in the main textbox -->
+</section>
 
 </body>
 </html>
+
+
+<!--
+This defines the function that updates the values for hyperparameters
+-->
+<script>
+    function updateValue(val) {
+        document.getElementById('sliderValue').value = val;
+    }
+</script>
+
+<!--
+Here is the function that defines the Run Simulation button.
+-->
+<script>
+    $('#runScriptBtn').click(function() {
+        $.get('/run-script', function(data) {
+            if (data.error) {
+                $('#output').text("Error: " + data.error);
+            } else {
+                const gridContainer = $('.grid-container');
+                gridContainer.empty(); // Clear any existing grid items
+
+                // Loop through the output list and create new grid items
+                data.output.forEach(function(item) {
+                    const gridItem = $('<div>').addClass('grid-item').text(item);
+                    gridContainer.append(gridItem);
+                });
+
+                // Display the plot image if available
+                if (data.image_url) {
+                    $('#resultImage').attr('src', data.image_url + '?' + new Date().getTime());
+                }
+            }
+        });
+    });
+</script>
+
