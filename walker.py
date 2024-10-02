@@ -6,7 +6,9 @@ from src import config
 import time
 import logging
 import argparse
+import os
 
+# When run as a module, this script has the name 'walker'
 
 # Parse arguments and python logger options
 logger = logging.getLogger(__name__)
@@ -67,9 +69,10 @@ def integrator_performance(t_start, t_end):
     delta_t = t_end - t_start
     ns_day = (steps / delta_t) * dt * 86400 # nanoseconds per day
     time_step = delta_t / steps
-    print('SIMULATION SUMMARY:')
-    print(f'nanoseconds per day: {ns_day:.3f}')
-    print(f'time per step: {time_step:.7f}')
+    print(f"""SIMULATION SUMMARY:
+    nanoseconds per day: {ns_day:.3f}
+    time per step: {time_step:.7f}
+    """)
 
 # Empty arrays to store information
 q = np.zeros(steps + 1) # Making room for final radian
@@ -91,12 +94,11 @@ E[0] = 0.5 * p**2 + v
 xlong = np.arange(-np.pi, np.pi, 0.01)
 vcalc, first = force(xlong, 0, w, delta)
 
-print("Parameters:")
 print(f" Number of steps: {steps}")
-print(f" Initial x coord: {x0:.2f}")
+print(f" Initial x coord: {x0:.2f} radians")
 print(f" Initial Potential: {V_x(x0)}")
-print(f" 'Temperature': {T:.2f}")
-print(f" Timestep: {dt:.2e}")
+print(f" Temperature: {T:.2f}")
+print(f" Timestep: {dt:.2e}ns")
 
 # Primary MD Engine
 t0 = time.time()
@@ -127,21 +129,22 @@ for i in range(steps):
             logger.info(f"""
         *******--- METADYNAMICS STEP ---*******
         step: {i}
-        bias: {bias[k]}
         energy: {V[i]}
         radians: {q[i]}""")
-        else:
+        #else: # from 111,118.324 ns/day --> 849417.845 ns/day. HUH?????
             if len(s) > 1: 
                 for k in range(len(xlong)):
                     bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
                     hills[k] = bias[k]
-        v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # metad
-        V[i] = v #THIS IS CRUCIAL
+        
+        # append the biased potential to existing potential 
+        v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # main metad step
+
+        V[i] = v #THIS IS CRUCIAL!!
     
     else:
         V[i] = v # Store unbiased potential 
         bias = 0
-        hills[i] = bias # Add a zero to deposited hills
     
     if i % mratio == 0: 
         logger.info(f"""
@@ -173,10 +176,12 @@ def reweight_bias(hills, kT, bins=100):
 # OR we can do thisfor legibility
 sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 
+
+
+fes(V_x)
 # rads_time(q, sim_time)
 # hills_time(hills, sim_time)
 # energy_time(E, sim_time)
-animate_md(V, hills, q)
+# animate_md(V, hills, q)
 
-# plt.show()
 
