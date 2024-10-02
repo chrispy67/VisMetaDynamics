@@ -1,4 +1,4 @@
-metad = False
+metad = True
 
 MD_parameters = {
     'steps': int(),
