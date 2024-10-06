@@ -88,10 +88,19 @@ footer {
 
 .slider-container {
     display: flex;
-    align-items: center;
+    /* align-items: center; */
+    margin-bottom: 15px;
     gap: 10px;
 }
 
-.slider-label {
-    font-weight: bold;
+.container {
+    display: flex;
+    justify-content: space-between; /* Distribute space between sections */
+    gap: 20px; /* Add space between the sections */
+}
+
+section {
+    flex: 1; /* Make both sections take equal width */
+    padding: 10px;
+    border: 1px solid #ccc;
 }

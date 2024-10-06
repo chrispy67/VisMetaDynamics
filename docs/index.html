@@ -26,19 +26,60 @@
 
     <!-- Main content -->
     <section class="main-content">
-        <h1>Metadynamics Simulation Visualization</h1>
         <h2>Introduction to Metadynamics </h2>
 
     <!-- Sliders and Hyperparameters -->
-    <section>
-        <h2> Hyperparameter adjustments </h2>
+    <div class="container">
+        <section>
+            <h2>Molecular Dynamics Simulations Parameters</h2>
     
-        <div class="slider-container"
-                <label class="Temperature" for="myRange">Value:</label>
-                <input type="range" id="myRange" min="200" max="400" value="310" oninput="updateValue(this.value)">
-                <input type="text" id="sliderValue" value="310" readonly>
-        </div>
+            <div class="slider-container">
+                <label class="slider-label" for="temperatureRange">Temperature (K):</label>
+                <input type="range" id="temperatureRange" min="200" max="400" value="310" step="1" oninput="updateValue('temperatureValue', this.value)"> 
+                <input type="text" id="temperatureValue" value="310" readonly>
+            </div>
+    
+            <div class="slider-container">
+                <label class="slider-label" for="timestepRange">dt (ns):</label>
+                <input type="range" id="timestepRange" min="0.005" max="0.5" value="0.02" step="0.005" oninput="updateValue('timestepValue', this.value)">
+                <input type="text" id="timestepValue" value="0.02" readonly>
+            </div>
+    
+            <div class="slider-container">
+                <label class="slider-label" for="stepRange">Steps:</label>
+                <input type="range" id="stepRange" min="1000" max="5000000" value="10000" step="1" oninput="updateValue('stepValue', this.value)">
+                <input type="text" id="stepValue" value="10000" readonly>
+            </div>
+    
+            <div class="slider-container">
+                <label class="slider-label" for="startPointRange">Theta (radians):</label>
+                <input type="range" id="startPointRange" value="0" step="0.05" oninput="updateValue('startPointValue', this.value)">
+                <input type="text" id="startPointValue" value="0" readonly>
+            </div>
         </section>
+    
+        <section>
+            <h2>Metadynamics Parameters</h2>
+    
+            <div class="slider-container">
+                <label class="slider-label" for="gaussianHeight">Gaussian Height (kcal):</label>
+                <input type="range" id="hillRange" min="0.1" max="2" value="1.2" step="0.1" oninput="updateValue('hillValue', this.value)">
+                <input type="text" id="hillValue" value="1.2" readonly>
+            </div>
+    
+            <div class="slider-container">
+                <label class="slider-label" for="gaussianWidth">Gaussian Width (radians):</label>
+                <input type="range" id="hillWidthRange" min="0.1" max="1.5" value="0.1" step="0.1" oninput="updateValue('hillWidthValue', this.value)">
+                <input type="text" id="hillWidthValue" value="0.1" readonly>
+            </div>
+    
+            <div class="slider-container">
+                <label class="slider-label" for="hillFrequency">Hill Frequency (steps):</label>
+                <input type="range" id="hfreqRange" min="10" max="1000" value="500" step="10" oninput="updateValue('hfreqValue', this.value)">
+                <input type="text" id="hfreqValue" value="500" readonly>
+            </div>
+        </section>
+    </div>
 
         <!-- THE BUTTON -->
         <button id="runScriptBtn">Begin Simulation</button> 
@@ -75,11 +116,26 @@
 
 
 <!--
-This defines the function that updates the values for hyperparameters
+The workaround for HTML not letting me format π inside the document
 -->
 <script>
-    function updateValue(val) {
-        document.getElementById('sliderValue').value = val;
+    // Set the min and max to -pi and pi
+    document.getElementById('startPointRange').min = -Math.PI;
+    document.getElementById('startPointRange').max = Math.PI;
+
+    function updateValue(inputId, value) {
+        // Display the slider value in the text box and limit to 4 decimal places
+        document.getElementById(inputId).value = parseFloat(value).toFixed(4);
+    }
+</script>
+
+<!--
+This defines the function that updates the values for hyperparameters
+-->
+
+<script>
+    function updateValue(inputId, val) {
+        document.getElementById(inputId).value = val;
     }
 </script>
 
