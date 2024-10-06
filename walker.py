@@ -131,7 +131,7 @@ for i in range(steps):
         step: {i}
         energy: {V[i]}
         radians: {q[i]}""")
-        #else: # from 111,118.324 ns/day --> 849417.845 ns/day. HUH?????
+        #else: # from 111,118.324 ns/day --> 849,417.845 ns/day. HUH?????
             if len(s) > 1: 
                 for k in range(len(xlong)):
                     bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
@@ -182,6 +182,7 @@ fes(V_x)
 # rads_time(q, sim_time)
 # hills_time(hills, sim_time)
 # energy_time(E, sim_time)
-# animate_md(V, hills, q)
+animate_md(V, hills, q)
 
+# plt.show()
 
