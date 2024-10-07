@@ -21,7 +21,7 @@ def clear_images(image_path, overwrite=True):
         if overwrite: #is True, keeping the files in place
             os.remove(image_path)
         
-        else: #write backup file as bck.fes_{n}.png where n is lowest common integer
+        else: #write backup file as bck.fes_{n}.png where n is lowest common integer (a la Plumed backup syntax)
             while os.path.exists(os.path.join('static', f"bck.fes_{n}.png")):
                 n += 1
             
@@ -123,7 +123,7 @@ def animate_md(V, hills, rads):
 
     # This either takes a REALLY long time or isn't working 
     # ani.save('MD_simulation.gif', writer='pillow', fps=30)
-    # plt.show() #must be inside the function, NOT walker.py to pass animation
+    plt.show() #must be inside the function, NOT walker.py to pass animation
 
     return ani  
 
