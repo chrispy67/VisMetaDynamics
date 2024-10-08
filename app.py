@@ -13,7 +13,7 @@ clear_images('static/fes.png', overwrite=True)
 # Clunky, but I don't think I can deal with args the same way I did with cgen2gmx.
 # Each time a new simulation is run, the config file is overwritten with update_config()
 def update_config(steps, timestep, temp, x0, mratio,
-    w, delta, hfreq):
+    metad, w, delta, hfreq):
     try:
         with open('src/config.py', 'w') as f:
             #MD parameters
@@ -24,11 +24,10 @@ def update_config(steps, timestep, temp, x0, mratio,
             f.write(f"mratio = {mratio}\n")
 
             # MetaD parameters
-            f.write(f"metad = {True}\n") # overriding this flag for now 
+            f.write(f"metad = {metad}\n") # overriding this flag for now 
             f.write(f"w = {w}\n")
             f.write(f"delta = {delta}\n")
             f.write(f"hfreq = {hfreq}\n")
-        print(steps, timestep, temp, x0, mratio)
     except Exception as e:
         print(e)
 
@@ -41,18 +40,37 @@ def submit_params():
     x0 = request.form.get('x0')
     mratio = request.form.get('mratio')
 
+    # ON/OFF bool needs to be translated
+    metad_from_switch = request.form.get('metad') #on/off
+    if metad_from_switch == 'on':
+        metad = True
+    else:
+        metad = False
+    
     # Metadynamics parameters
-    # metad = request.form.get('metad') #bool
     w = request.form.get('w')
     delta = request.form.get('delta')
     hfreq = request.form.get('hfreq')
 
     #apply changes with helper function organized the same way
     update_config(steps, timestep, temp, x0, mratio,
-        w, delta, hfreq)
+        metad, w, delta, hfreq)
     
     # no content on success
     return '', 204 # do
+
+# Slightly different from submit_params
+@app.route('/process_switch', methods=['POST'])
+def process_switch():
+    data = request.get_json()
+    metadynamics_state = data.get('metadynamics', False)  # Get the boolean state, default is False
+    print(f"Metadynamics is {'on' if metadynamics_state else 'off'}")
+    
+    # Process the metadynamics state as needed (e.g., pass it to another function)
+    # ...
+
+    return jsonify({'success': True, 'metadynamics': metadynamics_state})
+
 
 @app.route('/')
 def home():

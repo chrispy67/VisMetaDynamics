@@ -104,3 +104,47 @@ section {
     padding: 10px;
     border: 1px solid #ccc;
 }
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 30px; 
+    height: 17px; 
+}
+
+.switch input {
+    display: none;
+}
+
+/* The slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 17px; 
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 13px;
+    width: 13px; 
+    left: 2px; 
+    bottom: 2px; 
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(13px); 
+}
