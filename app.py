@@ -1,27 +1,66 @@
-from flask import Flask, render_template, jsonify, send_from_directory, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for
 import subprocess
 import threading
 import webbrowser
 from plots import clear_images
 
-# I need to organize this stuff to be used like modules and script ASAP
-#   - something about where the graphs are coming from when app.py is ran. 
+app = Flask(__name__, template_folder='docs')
 
-# This needs to be placed OUTSIDE the function, since that function represents the 'begin simulation' button
+
+# This needs to be placed OUTSIDE run_script(), since that function represents the 'begin simulation' button
 clear_images('static/fes.png', overwrite=True)
 
-app = Flask(__name__, template_folder='docs')
+# Clunky, but I don't think I can deal with args the same way I did with cgen2gmx.
+# Each time a new simulation is run, the config file is overwritten with update_config()
+def update_config(steps, timestep, temp, x0, mratio,
+    w, delta, hfreq):
+    try:
+        with open('src/config.py', 'w') as f:
+            #MD parameters
+            f.write(f"steps = {steps}\n")
+            f.write(f"timestep = {timestep}\n")
+            f.write(f"temp = {temp}\n")
+            f.write(f"x0 = {x0}\n")
+            f.write(f"mratio = {mratio}\n")
+
+            # MetaD parameters
+            f.write(f"metad = {True}\n") # overriding this flag for now 
+            f.write(f"w = {w}\n")
+            f.write(f"delta = {delta}\n")
+            f.write(f"hfreq = {hfreq}\n")
+        print(steps, timestep, temp, x0, mratio)
+    except Exception as e:
+        print(e)
+
+@app.route('/submit_params', methods=['POST'])
+def submit_params():
+    # MD parameters
+    temp = request.form.get('temp')
+    steps = request.form.get('steps')
+    timestep = request.form.get('timestep')
+    x0 = request.form.get('x0')
+    mratio = request.form.get('mratio')
+
+    # Metadynamics parameters
+    # metad = request.form.get('metad') #bool
+    w = request.form.get('w')
+    delta = request.form.get('delta')
+    hfreq = request.form.get('hfreq')
+
+    #apply changes with helper function organized the same way
+    update_config(steps, timestep, temp, x0, mratio,
+        w, delta, hfreq)
+    
+    # no content on success
+    return '', 204 # do
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
 def open_browser():
     webbrowser.open_new('http://127.0.0.1:5000/')
+
 
 @app.route('/run-script', methods=['GET'])
 def run_script():
@@ -37,6 +76,7 @@ def run_script():
         return jsonify({'output': grid_items, 'image_url': image_url}) # modify this dict to return ALL images of interest
     except Exception as e:
         return jsonify({'error': str(e)})
+
 
 if __name__ == '__main__':
     threading.Timer(1, open_browser).start() #automatically open browser

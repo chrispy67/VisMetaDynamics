@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- -->
 
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 
 <head>
     <meta charset="UTF-8">
@@ -29,63 +28,65 @@
         <h2>Introduction to Metadynamics </h2>
 
     <!-- Sliders and Hyperparameters -->
-    <div class="container">
-        <section>
-            <h2>Molecular Dynamics Simulations Parameters</h2>
-    
-            <div class="slider-container">
-                <label class="slider-label" for="temperatureRange">Temperature (K):</label>
-                <input type="range" id="temperatureRange" min="200" max="400" value="310" step="1" oninput="updateValue('temperatureValue', this.value)"> 
-                <input type="text" id="temperatureValue" value="310" readonly>
-            </div>
-    
-            <div class="slider-container">
-                <label class="slider-label" for="timestepRange">dt (ns):</label>
-                <input type="range" id="timestepRange" min="0.005" max="0.5" value="0.02" step="0.005" oninput="updateValue('timestepValue', this.value)">
-                <input type="text" id="timestepValue" value="0.02" readonly>
-            </div>
-    
-            <div class="slider-container">
-                <label class="slider-label" for="stepRange">Steps:</label>
-                <input type="range" id="stepRange" min="1000" max="5000000" value="10000" step="1" oninput="updateValue('stepValue', this.value)">
-                <input type="text" id="stepValue" value="10000" readonly>
-            </div>
-    
-            <div class="slider-container">
-                <label class="slider-label" for="startPointRange">Theta (radians):</label>
-                <input type="range" id="startPointRange" value="0" step="0.05" oninput="updateValue('startPointValue', this.value)">
-                <input type="text" id="startPointValue" value="0" readonly>
-            </div>
-        </section>
-    
-        <section>
-            <h2>Metadynamics Parameters</h2>
-    
-            <div class="slider-container">
-                <label class="slider-label" for="gaussianHeight">Gaussian Height (kcal):</label>
-                <input type="range" id="hillRange" min="0.1" max="2" value="1.2" step="0.1" oninput="updateValue('hillValue', this.value)">
-                <input type="text" id="hillValue" value="1.2" readonly>
-            </div>
-    
-            <div class="slider-container">
-                <label class="slider-label" for="gaussianWidth">Gaussian Width (radians):</label>
-                <input type="range" id="hillWidthRange" min="0.1" max="1.5" value="0.1" step="0.1" oninput="updateValue('hillWidthValue', this.value)">
-                <input type="text" id="hillWidthValue" value="0.1" readonly>
-            </div>
-    
-            <div class="slider-container">
-                <label class="slider-label" for="hillFrequency">Hill Frequency (steps):</label>
-                <input type="range" id="hfreqRange" min="10" max="1000" value="500" step="10" oninput="updateValue('hfreqValue', this.value)">
-                <input type="text" id="hfreqValue" value="500" readonly>
-            </div>
-        </section>
-    </div>
+    <form id="paramsForm">
+        <div class="container">
+            <section>
+                <h2>Molecular Dynamics Simulations Parameters</h2>
+            
+                <div class="slider-container">
+                    <label class="slider-label" for="temperatureRange">Temperature (K):</label>
+                    <input type="range" name="temp" id="temperatureRange" min="200" max="400" value="310" step="1" oninput="updateValue('temperatureValue', this.value)"> 
+                    <input type="text" id="temperatureValue" value="310" readonly>
+                </div>
+            
+                <div class="slider-container">
+                    <label class="slider-label" for="timestepRange">dt (ns):</label>
+                    <input type="range" name="timestep" id="timestepRange" min="0.005" max="0.5" value="0.02" step="0.005" oninput="updateValue('timestepValue', this.value)">
+                    <input type="text" id="timestepValue" value="0.02" readonly>
+                </div>
+            
+                <div class="slider-container">
+                    <label class="slider-label" for="stepRange">Steps:</label>
+                    <input type="range" name="steps" id="stepRange" min="1000" max="5000000" value="10000" step="1" oninput="updateValue('stepValue', this.value)">
+                    <input type="text" id="stepValue" value="10000" readonly>
+                </div>
+            
+                <div class="slider-container">
+                    <label class="slider-label" for="startPointRange">Theta (radians):</label>
+                    <input type="range" name="x0" id="startPointRange" value="0" step="0.05" oninput="updateValue('startPointValue', this.value)">
+                    <input type="text" id="startPointValue" value="0" readonly>
+                </div>
+            </section>
+        
+            <section>
+                <h2>Metadynamics Parameters</h2>
+            
+                <div class="slider-container">
+                    <label class="slider-label" for="gaussianHeight">Gaussian Height (kcal):</label>
+                    <input type="range" name="w" id="hillRange" min="0.1" max="2" value="1.2" step="0.1" oninput="updateValue('hillValue', this.value)">
+                    <input type="text" id="hillValue" value="1.2" readonly>
+                </div>
+            
+                <div class="slider-container">
+                    <label class="slider-label" for="gaussianWidth">Gaussian Width (radians):</label>
+                    <input type="range" name="delta" id="hillWidthRange" min="0.1" max="1.5" value="0.1" step="0.1" oninput="updateValue('hillWidthValue', this.value)">
+                    <input type="text" id="hillWidthValue" value="0.1" readonly>
+                </div>
+            
+                <div class="slider-container">
+                    <label class="slider-label" for="hillFrequency">Hill Frequency (steps):</label>
+                    <input type="range" name="hfreq" id="hfreqRange" min="10" max="1000" value="500" step="10" oninput="updateValue('hfreqValue', this.value)">
+                    <input type="text" id="hfreqValue" value="500" readonly>
+                </div>
+            </section>
+        </div>
+    </form>
 
         <!-- THE BUTTON -->
-        <button id="runScriptBtn">Begin Simulation</button> 
-        <h2>
-            Results:
-        </h2>
+        <button id="runScriptBtn">Begin Simulation</button>
+
+        <!-- RESULTS-->
+        <h2>Results:</h2>
         <img
             id="resultImage"
             src="static/fes.png"
@@ -134,8 +135,16 @@ This defines the function that updates the values for hyperparameters
 -->
 
 <script>
-    function updateValue(inputId, val) {
-        document.getElementById(inputId).value = val;
+    // Initialize the startPointRange slider after the document loads
+    document.addEventListener("DOMContentLoaded", function() {
+        const startPointRange = document.getElementById('startPointRange');
+        startPointRange.min = -Math.PI;
+        startPointRange.max = Math.PI;
+    });
+
+    // Combined updateValue function
+    function updateValue(inputId, value) {
+        document.getElementById(inputId).value = parseFloat(value).toFixed(4);
     }
 </script>
 
@@ -144,24 +153,28 @@ Here is the function that defines the Run Simulation button.
 -->
 <script>
     $('#runScriptBtn').click(function() {
-        $.get('/run-script', function(data) {
-            if (data.error) {
-                $('#output').text("Error: " + data.error);
-            } else {
-                const gridContainer = $('.grid-container');
-                gridContainer.empty(); // Clear any existing grid items
+        // Submit the form data using AJAX POST
+        $.post('/submit_params', $('#paramsForm').serialize(), function() {
+            // After parameters are chosen, trigger the simulation script
+            $.get('/run-script', function(data) {
+                if (data.error) {
+                    $('#output').text("Error: " + data.error);
+                } else {
+                    const gridContainer = $('.grid-container');
+                    gridContainer.empty(); // Clear any existing grid items
 
-                // Loop through the output list and create new grid items
-                data.output.forEach(function(item) {
-                    const gridItem = $('<div>').addClass('grid-item').text(item);
-                    gridContainer.append(gridItem);
-                });
+                    // Loop through the output list and create new grid items
+                    data.output.forEach(function(item) {
+                        const gridItem = $('<div>').addClass('grid-item').text(item);
+                        gridContainer.append(gridItem);
+                    });
 
-                // Display the plot image if available
-                if (data.image_url) {
-                    $('#resultImage').attr('src', data.image_url + '?' + new Date().getTime());
+                    // Display the plot image if available
+                    if (data.image_url) {
+                        $('#resultImage').attr('src', data.image_url + '?' + new Date().getTime());
+                    }
                 }
-            }
+            });
         });
     });
 </script>

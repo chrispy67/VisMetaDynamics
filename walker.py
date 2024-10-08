@@ -28,18 +28,18 @@ setup_logger(log_level)
 #####---User Inputs---#####
 
 # Define parameters
-steps = 10000
-mratio = 100
-x0 = 2
-T = 350  # Initial temperature | ADJUST
-dt = 0.005  # Time step
+mratio = 10 #what to do here?
+steps = config.steps
+x0 = config.x0
+T = config.temp  # Initial temperature
+dt = config.timestep  # Time step
 t = 0  # Time
 m = 1  # Mass
 
 # Parameters for metadynamics
-w = 1.2 #ADJUST
-delta = 0.1 #ADJUST
-hfreq = 10 #ADJUST | hill deposition rate
+w = config.w
+delta = config.delta
+hfreq = config.hfreq
 
 # Parameters for integrator
 gamma = 5.0
@@ -178,11 +178,13 @@ sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 
 
 
-fes(V_x)
+# fes(V_x)
 # rads_time(q, sim_time)
 # hills_time(hills, sim_time)
 # energy_time(E, sim_time)
-animate_md(V, hills, q)
+# animate_md(V, hills, q)
+
+
 
 # plt.show()
 
