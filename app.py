@@ -40,13 +40,15 @@ def submit_params():
     x0 = request.form.get('x0')
     mratio = request.form.get('mratio')
 
+    metad = None
     # ON/OFF bool needs to be translated
-    metad_from_switch = request.form.get('metad') #on/off
-    if metad_from_switch == 'on':
+    metad_from_switch = request.form.get('metadynamics')
+
+    if metad_from_switch == 'true':
         metad = True
-    else:
-        metad = False
     
+    if metad_from_switch == 'false':
+        metad = False
     # Metadynamics parameters
     w = request.form.get('w')
     delta = request.form.get('delta')

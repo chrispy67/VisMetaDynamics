@@ -75,8 +75,8 @@
             
                 <div class="slider-container">
                     <label class="slider-label" for="hillFrequency">Hill Frequency (steps):</label>
-                    <input type="range" name="hfreq" id="hfreqRange" min="10" max="1000" value="500" step="10" oninput="updateValue('hfreqValue', this.value)">
-                    <input type="text" id="hfreqValue" value="500" readonly>
+                    <input type="range" name="hfreq" id="hfreqRange" min="10" max="1000" value="50" step="10" oninput="updateValue('hfreqValue', this.value)">
+                    <input type="text" id="hfreqValue" value="50" readonly>
                 </div>
 
                 <!-- Metadynamics ON/OFF -->
@@ -93,8 +93,8 @@
         <!-- THE BUTTON -->
         <button id="runScriptBtn">Begin Simulation</button>
 
-<!--
-        RESULTS
+<!--RESULTS-->
+        
         <h2>Results:</h2>
         <img
             id="resultImage"
@@ -112,7 +112,7 @@
             alt="Metadynamics of alanine dipeptide dihedral angle"
             width="600"
             height="400" />
--->
+
 <section>
     <div id="output"></div>
     <div class="grid-container">

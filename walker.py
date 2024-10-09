@@ -28,7 +28,7 @@ setup_logger(log_level)
 #####---User Inputs---#####
 
 # Define parameters
-mratio = 10 #what to do here?
+mratio = 10 #what to do here? Maybe this is something I enforce a min/max for as a function of steps?
 steps = config.steps
 x0 = config.x0
 T = config.temp  # Initial temperature
@@ -37,6 +37,7 @@ t = 0  # Time
 m = 1  # Mass
 
 # Parameters for metadynamics
+print(config.metad)
 w = config.w
 delta = config.delta
 hfreq = config.hfreq
@@ -178,11 +179,11 @@ sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 
 
 
-# fes(V_x)
+fes(V_x)
 # rads_time(q, sim_time)
 # hills_time(hills, sim_time)
 # energy_time(E, sim_time)
-# animate_md(V, hills, q)
+animate_md(V, hills, q)
 
 
 
