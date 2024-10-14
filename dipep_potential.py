@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
 
+#####---Sine/cosine fit because F(-pi) == F(pi) in a truly periodic system---#####
 
 #generic function to read simple files
 def read_fes(file):
@@ -16,43 +18,90 @@ def read_fes(file):
             x.append(float(columns[0]))
             y.append(float(columns[1]))
     infile.close()
-    return x, y
+    return np.array(x), np.array(y)
 
 phi, energy = read_fes('MD/fes-std.dat')
 
+# we need two functions because there are two parameters to tune for:
+#   - number of sine/cosine terms to add
+#   - the coefficients ouside each sine/cosine term
 
-#####---Evaluate the best fitting for polynomial function---#####
+def sine_cosine_fit(x, *coeffs):
+    result = np.zeros_like(x)
+    n = len(coeffs) // 2  # Number of sine-cosine pairs
+    for i in range(n):
+        result += coeffs[2*i] * np.sin((i+1) * x) + coeffs[2*i+1] * np.cos((i+1) * x)
+    return result
+
+def fit_sine_cosine(x, y, num_terms):
+    # Initial guess has 2 * num_terms coefficients (sine and cosine terms)
+    initial_guess = np.ones(2 * num_terms)
+    params, _ = curve_fit(sine_cosine_fit, x, y, p0=initial_guess)
+    return params
+
+
+terms = range(1, 10)
+errors = []
+fitted_params = []
+
+for num_terms in terms:
+    params = fit_sine_cosine(phi, energy, num_terms)
+    y_pred = sine_cosine_fit(phi, *params)
+    mse = np.mean((energy - y_pred) ** 2)
+    errors.append(mse)
+    fitted_params.append(params)
+
+min_error_terms = terms[np.argmin(errors)]  # Best number of terms
+
+# Get the best fitting coefficients
+best_params = fitted_params[np.argmin(errors)]
+
+# Define the best-fitting potential function V(x)
+def V_x(x):
+    return sine_cosine_fit(x, *best_params)
+
+# Plot original data and the best sine-cosine fitting
+if __name__ == '__main__':
+    plt.scatter(phi, energy, label='Free-energy surface of Alanine Dipeptide dihedral')
+    plt.plot(phi, V_x(phi), label='Best sine-cosine fit', color='red')
+    plt.legend()
+    plt.show()
+
+
+#####---Evaluate the best fitting for polynomial function (DEPRECATED)---#####
+# This method is problematic because F(pi) != F(-pi) and for this to be truly periodic,
+# we need to make sure they are the same. 
 #I want to describe the standard FES as a polynomial to describe the 'known' potential V(x)
 
 #loop through to test a variety of degrees 
-def poly_fitting(x, y, degree):
-    coeffs = np.polyfit(x, y, degree)
-    p = np.poly1d(coeffs)
-    y_pred = p(x)
-    mse = np.mean((y-y_pred)**2)
-    return mse, p
+# def poly_fitting(x, y, degree):
+#     coeffs = np.polyfit(x, y, degree)
+#     p = np.poly1d(coeffs)
+#     y_pred = p(x)
+#     mse = np.mean((y-y_pred)**2)
+#     return mse, p
 
-degrees = range(1, 20)
-errors = []
-polynomials = []
+# degrees = range(1, 20)
+# errors = []
+# polynomials = []
 
-for degree in degrees:
-    mse, polynomial = poly_fitting(phi, energy, degree)
-    errors.append(mse)
-    polynomials.append(polynomial)
+# for degree in degrees:
+#     mse, polynomial = poly_fitting(phi, energy, degree)
+#     errors.append(mse)
+#     polynomials.append(polynomial)
 
-min_error_degree = degrees[np.argmin(errors)] #best degree, should be integer
+# min_error_degree = degrees[np.argmin(errors)] #best degree, should be integer
 
-coeffs = np.polyfit(phi, energy, min_error_degree) #best fitting
+# coeffs = np.polyfit(phi, energy, min_error_degree) #best fitting
 
-V_x = np.poly1d(coeffs) #a priori potential 
+# V_x = np.poly1d(coeffs) #a priori potential 
 
 
 
 #plot original data and the best polynomial fitting
 
-if __name__ == '__main__':  
-    plt.scatter(phi, energy, label='Free-energy surface of Alanine Dipeptide dihedral')
-    plt.plot(phi, polynomials[min_error_degree - 1](phi), label='best fit', color='red')
-    plt.legend()
-    plt.show()
+# if __name__ == '__main__':  
+#     plt.scatter(phi, energy, label='Free-energy surface of Alanine Dipeptide dihedral')
+#     plt.plot(phi, polynomials[min_error_degree - 1](phi), label='best fit', color='red')
+#     plt.legend()
+#     plt.show()
