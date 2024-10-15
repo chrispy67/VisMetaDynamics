@@ -9,10 +9,11 @@ app = Flask(__name__, template_folder='docs')
 
 # This needs to be placed OUTSIDE run_script(), since that function represents the 'begin simulation' button
 clear_images('static/fes.png', overwrite=True)
+# clear_images('static/MD_simulation.gif')
 
 # Clunky, but I don't think I can deal with args the same way I did with cgen2gmx.
 # Each time a new simulation is run, the config file is overwritten with update_config()
-def update_config(steps, timestep, temp, x0, mratio,
+def update_config(steps, timestep, temp, x0, #mratio,
     metad, w, delta, hfreq):
     try:
         with open('src/config.py', 'w') as f:
@@ -21,7 +22,7 @@ def update_config(steps, timestep, temp, x0, mratio,
             f.write(f"timestep = {timestep}\n")
             f.write(f"temp = {temp}\n")
             f.write(f"x0 = {x0}\n")
-            f.write(f"mratio = {mratio}\n")
+            # f.write(f"mratio = {mratio}\n")
 
             # MetaD parameters
             f.write(f"metad = {metad}\n") # overriding this flag for now 
@@ -38,7 +39,7 @@ def submit_params():
     steps = request.form.get('steps')
     timestep = request.form.get('timestep')
     x0 = request.form.get('x0')
-    mratio = request.form.get('mratio')
+    # mratio = request.form.get('mratio')
 
     metad = None
     # ON/OFF bool needs to be translated
@@ -55,7 +56,7 @@ def submit_params():
     hfreq = request.form.get('hfreq')
 
     #apply changes with helper function organized the same way
-    update_config(steps, timestep, temp, x0, mratio,
+    update_config(steps, timestep, temp, x0, #mratio,
         metad, w, delta, hfreq)
     
     # no content on success
@@ -66,11 +67,7 @@ def submit_params():
 def process_switch():
     data = request.get_json()
     metadynamics_state = data.get('metadynamics', False)  # Get the boolean state, default is False
-    print(f"Metadynamics is {'on' if metadynamics_state else 'off'}")
     
-    # Process the metadynamics state as needed (e.g., pass it to another function)
-    # ...
-
     return jsonify({'success': True, 'metadynamics': metadynamics_state})
 
 
