@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from dipep_potential import V_x
+from dipep_potential import V_potential, V_deriv
 from plots import hills_time, fes, rads_time, animate_md, energy_time
 from src import config
 import time
@@ -37,13 +37,12 @@ t = 0  # Time
 m = 1  # Mass
 
 # Parameters for metadynamics
-print(config.metad)
 w = config.w
 delta = config.delta
 hfreq = config.hfreq
 
 # Parameters for integrator
-gamma = 5.0
+gamma = 5.0 #
 beta = 1 / T / 1.987e-3  # assuming V is in kcal/mol
 c1 = np.exp(-gamma * dt / 2)
 c2 = np.sqrt((1 - c1**2) * m / beta)
@@ -51,11 +50,11 @@ c2 = np.sqrt((1 - c1**2) * m / beta)
 # Subfunction to calculate PE and force
 def force(r, s, w, delta):
     r = pbc(r)
-    V = V_x(r)
-    F = V_x.deriv() #function notation is at odds with the potential one-liner 
-    Fpot = -F(r)
+    V = V_potential(r)
+    F = V_deriv(r) #function notation is at odds with the potential one-liner 
+    Fpot = -F
 
-    if config.metad: #ON/OFF SWITCH
+    if config.metad: 
         Fbias = np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2))) # Metadynamics eq
     else:
         Fbias = 0
@@ -91,13 +90,15 @@ v, f = force(q[0], 0, w, delta)
 E[0] = 0.5 * p**2 + v
 
 
+
 # Plot 1D FES
 xlong = np.arange(-np.pi, np.pi, 0.01)
 vcalc, first = force(xlong, 0, w, delta)
+bias = np.zeros((len(xlong), ), dtype=float)
 
 print(f" Number of steps: {steps}")
 print(f" Initial x coord: {x0:.2f} radians")
-print(f" Initial Potential: {V_x(x0)}")
+print(f" Initial Potential: {V_potential(x0)}")
 print(f" Temperature: {T:.2f}")
 print(f" Timestep: {dt:.2e}ns")
 
@@ -106,8 +107,9 @@ t0 = time.time()
 
 for i in range(steps):
     # Check if we should deposit a hill on the FES
+    
     if config.metad:
-        s = np.append(s, q[i]) if i % hfreq == 0 else s #potentially MUCH faster one-liner?
+        s = np.append(s, q[i]) if i % hfreq == 0 else s # append a sigma as fxn of hfreq
 
 #####---Langevian integrator (https://doi.org/10.1103/PhysRevE.75.056707)---#####
     v, f = force(q[i], s, w, delta) # q[0] is already cast as x0
@@ -126,7 +128,7 @@ for i in range(steps):
 
     if config.metad:
         if i % hfreq == 0: # ifreq vs hfreq? this USED to be ifreq
-            bias = vcalc.copy()
+            # bias = vcalc.copy()
             logger.info(f"""
         *******--- METADYNAMICS STEP ---*******
         step: {i}
@@ -135,8 +137,20 @@ for i in range(steps):
         #else: # from 111,118.324 ns/day --> 849,417.845 ns/day. HUH?????
             if len(s) > 1: 
                 for k in range(len(xlong)):
-                    bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
-                    hills[k] = bias[k]
+                    #####---HANDLING PBC OF GAUSSIAN ---#####
+                    # mean_s = np.mean(s)
+                    # sigma_s = np.std(s)
+                    
+                    # if mean_s + 5 * sigma_s > np.pi:
+                    #     bias[k - len(xlong)] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
+                    
+                    # if mean_s - 5 *sigma_s < -np.pi:
+                    #     bias[k + len(xlong)] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
+
+                    # if s is within 5σ of boundary condition:
+                        #bias[k + len(xlong)] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
+                    #else:
+                        bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
         
         # append the biased potential to existing potential 
         v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # main metad step
@@ -165,9 +179,6 @@ tplus = time.time()
 
 integrator_performance(t0, tplus)
 
-def reweight_bias(hills, kT, bins=100):
-    pass
-
 
 #####---Plots as functions from plots.py---#####
 
@@ -178,14 +189,16 @@ def reweight_bias(hills, kT, bins=100):
 sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 
 
+x = np.linspace(-np.pi, np.pi, len(bias))
 
-fes(V_x)
+log_bias = np.log(bias)
+plt.plot(x, -bias)
+
+fes(V_potential)
 # rads_time(q, sim_time)
 # hills_time(hills, sim_time)
 # energy_time(E, sim_time)
 animate_md(V, hills, q)
 
-
-
-# plt.show()
+plt.show()
 

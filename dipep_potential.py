@@ -56,14 +56,34 @@ min_error_terms = terms[np.argmin(errors)]  # Best number of terms
 # Get the best fitting coefficients
 best_params = fitted_params[np.argmin(errors)]
 
+def sine_cosine_derivative(x, *coeffs):
+    result = np.zeros_like(x)
+    n = len(coeffs) // 2
+    for i in range(n):
+        result += (i+1) * coeffs[2*i] * np.cos((i+1) * x)  # Derivative of sine
+        result -= (i+1) * coeffs[2*i+1] * np.sin((i+1) * x)  # Derivative of cosine
+    return result
+
 # Define the best-fitting potential function V(x)
-def V_x(x):
-    return sine_cosine_fit(x, *best_params)
+def V_x():
+    def func(phi):
+        # this is messing up my underlying free energy surface. 
+        min_to_zero = np.abs(np.min(sine_cosine_fit(phi, *best_params)))
+        return sine_cosine_fit(phi, *best_params) 
+    
+    def deriv(phi):
+        return sine_cosine_derivative(phi, *best_params)
+
+    return func, deriv
+
+V_potential, V_deriv = V_x()
+print(np.min(V_potential(phi)))
 
 # Plot original data and the best sine-cosine fitting
 if __name__ == '__main__':
+    # make the minimum energy the new zero point
     plt.scatter(phi, energy, label='Free-energy surface of Alanine Dipeptide dihedral')
-    plt.plot(phi, V_x(phi), label='Best sine-cosine fit', color='red')
+    plt.plot(phi, V_potential(phi), label='Best sine-cosine fit', color='red')
     plt.legend()
     plt.show()
 
