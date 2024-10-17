@@ -6,7 +6,6 @@ from src import config
 import time
 import logging
 import argparse
-import os
 
 # When run as a module, this script has the name 'walker'
 
@@ -78,8 +77,7 @@ def integrator_performance(t_start, t_end):
 q = np.zeros(steps + 1) # Making room for final radian
 E = np.zeros(steps + 1) # Making room for final energy
 V = np.zeros(steps + 1) # Making room for final potential
-COLVAR = [] # empty array to resemble COLVAR file (time, CV, CV.bias)
-hills = np.zeros(steps + 1)
+# COLVAR = [] # empty array to resemble COLVAR file (time, CV, CV.bias)
 
 # Initial configurations 
 q[0] = x0
@@ -92,9 +90,9 @@ E[0] = 0.5 * p**2 + v
 
 
 # Plot 1D FES
-xlong = np.arange(-np.pi, np.pi, 0.01)
+xlong = np.arange(-np.pi, np.pi, 0.01) #len of bias array is directly related to this. 
 vcalc, first = force(xlong, 0, w, delta)
-bias = np.zeros((len(xlong), ), dtype=float)
+bias = np.zeros((len(xlong), ), dtype=float) # this array size needs to be changed to fit periodic gaussians?
 
 print(f" Number of steps: {steps}")
 print(f" Initial x coord: {x0:.2f} radians")
@@ -107,7 +105,6 @@ t0 = time.time()
 
 for i in range(steps):
     # Check if we should deposit a hill on the FES
-    
     if config.metad:
         s = np.append(s, q[i]) if i % hfreq == 0 else s # append a sigma as fxn of hfreq
 
@@ -127,8 +124,7 @@ for i in range(steps):
     E[i + 1] = 0.5 * p**2 + v2 # Updated energy, classic Newtonian eq
 
     if config.metad:
-        if i % hfreq == 0: # ifreq vs hfreq? this USED to be ifreq
-            # bias = vcalc.copy()
+        if i % hfreq == 0: 
             logger.info(f"""
         *******--- METADYNAMICS STEP ---*******
         step: {i}
@@ -137,20 +133,34 @@ for i in range(steps):
         #else: # from 111,118.324 ns/day --> 849,417.845 ns/day. HUH?????
             if len(s) > 1: 
                 for k in range(len(xlong)):
-                    #####---HANDLING PBC OF GAUSSIAN ---#####
-                    # mean_s = np.mean(s)
-                    # sigma_s = np.std(s)
+                
+                ####---HANDLING PBC OF GAUSSIAN ---#####
+                    # V(s) is where I want to intervene, NOT V(s, t). 
+                    # But the dimensions of the bias added to the gaussian need to be checked for periodicity
                     
-                    # if mean_s + 5 * sigma_s > np.pi:
-                    #     bias[k - len(xlong)] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
-                    
-                    # if mean_s - 5 *sigma_s < -np.pi:
-                    #     bias[k + len(xlong)] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
+                    bias_k = w * np.exp(-(xlong[k] - np.array(s)) ** 2 / (2 * delta**2)) #Bias(rads)
+                    rad_k = xlong[k] # where on the x-axis we are biasing
 
-                    # if s is within 5σ of boundary condition:
-                        #bias[k + len(xlong)] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
-                    #else:
-                        bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
+                    #dimensions of gaussian
+                    mean_s = np.mean(bias_k)
+                    sigma_s = np.std(bias_k)
+                    # print(mean_s + 5*sigma_s)
+
+                    if rad_k + (mean_s + 5 * sigma_s) > np.pi: # the 2d gaussian stretches arcross π
+                        # print('***PBC ENCOUNTERED***')
+                        bias[k - len(xlong)] += np.sum(bias_k)
+                    
+                    if rad_k - (mean_s - 5 * sigma_s) < -np.pi: # the 2d gaussian stretches arcross -π
+                        # print('***PBC ENCOUNTERED***')
+                        bias[k + len(xlong)] += np.sum(bias_k)
+                    
+                    else:
+                        # print('***NORMAL METAD***')
+                        bias[k] += np.sum(bias_k) #summation step
+
+                    # PRIOR TO THINKING ABOUT PBC
+                    # bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
+
         
         # append the biased potential to existing potential 
         v += np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2))) # main metad step
@@ -179,6 +189,7 @@ tplus = time.time()
 
 integrator_performance(t0, tplus)
 
+print(np.shape(bias))
 
 #####---Plots as functions from plots.py---#####
 
@@ -189,16 +200,20 @@ integrator_performance(t0, tplus)
 sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 
 
-x = np.linspace(-np.pi, np.pi, len(bias))
+def reweight(bias):
+    x = np.linspace(-np.pi, np.pi, len(bias))
 
-log_bias = np.log(bias)
-plt.plot(x, -bias)
+    #F(s, t) ~= -V(s, t) + C
+    C = (bias - np.min(bias)) #normalization constant of integration?
+    # print(C)
+    plt.plot(x, -bias - C, label='Correct for C')
+    plt.plot(x, -bias, label='no C')
 
-fes(V_potential)
+reweight(bias)
+# fes(V_potential)
 # rads_time(q, sim_time)
-# hills_time(hills, sim_time)
 # energy_time(E, sim_time)
-animate_md(V, hills, q)
+animate_md(V, bias, q)
 
 plt.show()
 

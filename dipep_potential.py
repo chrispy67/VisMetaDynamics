@@ -69,7 +69,8 @@ def V_x():
     def func(phi):
         # this is messing up my underlying free energy surface. 
         min_to_zero = np.abs(np.min(sine_cosine_fit(phi, *best_params)))
-        return sine_cosine_fit(phi, *best_params) 
+
+        return sine_cosine_fit(phi, *best_params)
     
     def deriv(phi):
         return sine_cosine_derivative(phi, *best_params)
@@ -77,7 +78,6 @@ def V_x():
     return func, deriv
 
 V_potential, V_deriv = V_x()
-print(np.min(V_potential(phi)))
 
 # Plot original data and the best sine-cosine fitting
 if __name__ == '__main__':
