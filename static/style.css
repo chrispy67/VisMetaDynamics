@@ -88,9 +88,22 @@ footer {
 
 .slider-container {
     display: flex;
-    /* align-items: center; */
-    margin-bottom: 15px;
-    gap: 10px;
+    flex-direction: row; 
+    flex-wrap: wrap; /*wrap text below slider */
+    align-items: center;
+    margin-bottom: 7px;
+    gap: 5px;
+}
+
+.description {
+    flex-basis: 100%; /*span full width of the flexed container */
+    background-color: #f2f2f2; /* Light grey background */
+    border-radius: 4px; /* Slightly rounded corners */
+    padding: 5px;
+
+    font-size: 0,9em;
+    margin-top: 2px;
+    text-align: left;
 }
 
 .container {

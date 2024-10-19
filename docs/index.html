@@ -10,6 +10,9 @@
     <title>VisMetaDynamics</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
 </head>
 <body>
 
@@ -26,6 +29,9 @@
     <!-- Main content -->
     <section class="main-content">
         <h2>Introduction to Metadynamics </h2>
+        <p>
+            $$V_S(t) = t_0 \sum_{t'=\tau_G} W_0 \exp \left( - \frac{(S_i - S_i(t'))^2}{2\sigma_i^2} \right)$$
+        </p>
 
     <!-- Sliders and Hyperparameters -->
     <form id="paramsForm">
@@ -37,24 +43,25 @@
                     <label class="slider-label" for="temperatureRange">Temperature (K):</label>
                     <input type="range" name="temp" id="temperatureRange" min="200" max="400" value="310" step="1" oninput="updateValue('temperatureValue', this.value)"> 
                     <input type="text" id="temperatureValue" value="310" readonly>
-                </div>
-            
-                <div class="slider-container">
-                    <label class="slider-label" for="timestepRange">dt (ns):</label>
-                    <input type="range" name="timestep" id="timestepRange" min="0.005" max="0.5" value="0.02" step="0.005" oninput="updateValue('timestepValue', this.value)">
-                    <input type="text" id="timestepValue" value="0.02" readonly>
+
+                    <p class="description">Temperature defines the average kinetic energy of the solvated system. Increasing the temperature increases unbiased atomic fluctuations.</p>
                 </div>
             
                 <div class="slider-container">
                     <label class="slider-label" for="stepRange">Steps:</label>
                     <input type="range" name="steps" id="stepRange" min="1000" max="500000" value="10000" step="1" oninput="updateValue('stepValue', this.value)">
                     <input type="text" id="stepValue" value="10000" readonly>
+                    <p class="description">Length of the simulation in discrete molecular dynamics steps. Increasing steps creates longer simulations and improves sampling.</p>
+
                 </div>
             
                 <div class="slider-container">
                     <label class="slider-label" for="startPointRange">Theta (radians):</label>
                     <input type="range" name="x0" id="startPointRange" value="0" step="0.05" oninput="updateValue('startPointValue', this.value)">
                     <input type="text" id="startPointValue" value="0" readonly>
+
+                    <p class="description">The starting point, in radians, of the φ angle of alanine dipeptide. In practice, the collective variable observed in a PDB structure is the most thermodynamically favorable.</p>
+
                 </div>
             </section>
         
@@ -65,18 +72,27 @@
                     <label class="slider-label" for="gaussianHeight">Gaussian Height (kcal):</label>
                     <input type="range" name="w" id="hillRange" min="0.1" max="2" value="1.2" step="0.1" oninput="updateValue('hillValue', this.value)">
                     <input type="text" id="hillValue" value="1.2" readonly>
+
+                    <p class="description">The y-component of the biases added in the form Gaussian kernels in energy units.</p>
+
                 </div>
             
                 <div class="slider-container">
                     <label class="slider-label" for="gaussianWidth">Gaussian Width (radians):</label>
                     <input type="range" name="delta" id="hillWidthRange" min="0.1" max="1.5" value="0.1" step="0.1" oninput="updateValue('hillWidthValue', this.value)">
                     <input type="text" id="hillWidthValue" value="0.1" readonly>
+
+                    <p class="description">The x-component of the biases added in the form of Gaussian kernels. Effects the width and standard deviation of the normally distributed bias.</p>
+
                 </div>
             
                 <div class="slider-container">
                     <label class="slider-label" for="hillFrequency">Hill Frequency (steps):</label>
                     <input type="range" name="hfreq" id="hfreqRange" min="10" max="500" value="50" step="10" oninput="updateValue('hfreqValue', this.value)">
                     <input type="text" id="hfreqValue" value="50" readonly>
+
+                    <p class="description">Rate of bias deposition as a function of simulation steps. Increasing this value will add bias more frequently.</p>
+
                 </div>
 
                 <!-- Metadynamics ON/OFF -->

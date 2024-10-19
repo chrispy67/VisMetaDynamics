@@ -13,13 +13,12 @@ clear_images('static/fes.png', overwrite=True)
 
 # Clunky, but I don't think I can deal with args the same way I did with cgen2gmx.
 # Each time a new simulation is run, the config file is overwritten with update_config()
-def update_config(steps, timestep, temp, x0, #mratio,
+def update_config(steps, temp, x0, #mratio,
     metad, w, delta, hfreq):
     try:
         with open('src/config.py', 'w') as f:
             #MD parameters
             f.write(f"steps = {steps}\n")
-            f.write(f"timestep = {timestep}\n")
             f.write(f"temp = {temp}\n")
             f.write(f"x0 = {x0}\n")
             # f.write(f"mratio = {mratio}\n")
@@ -37,7 +36,6 @@ def submit_params():
     # MD parameters
     temp = request.form.get('temp')
     steps = request.form.get('steps')
-    timestep = request.form.get('timestep')
     x0 = request.form.get('x0')
     # mratio = request.form.get('mratio')
 
@@ -56,7 +54,7 @@ def submit_params():
     hfreq = request.form.get('hfreq')
 
     #apply changes with helper function organized the same way
-    update_config(steps, timestep, temp, x0, #mratio,
+    update_config(steps, temp, x0, #mratio,
         metad, w, delta, hfreq)
     
     # no content on success
