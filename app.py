@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for
 import subprocess
 import threading
 import webbrowser
-from plots import clear_images
+from src.plots import clear_images
 
 app = Flask(__name__, template_folder='docs')
 

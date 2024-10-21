@@ -1,6 +1,10 @@
 # VisMetaDynamics
 An interactive tutorial to metadynamics and enhanced sampling techniques for molecular dynamics simulations
 
+$$
+V_S(t) = t_0 \sum_{t'=\tau_G} W_0 \exp \left( - \frac{(S_i - S_i(t'))^2}{2\sigma_i^2} \right)
+$$
+
 # Introduction
 
 ## <b>What is Metadynamics?</b>
@@ -15,7 +19,7 @@ VisMetaDynamics is designed for someone already familiar with MD simulations. Th
 
 # About
 
-VisMetaDynamics is a 1-dimensional Langevian integrator using a pre-defined free energy surface. This free energy surface is the result of a short MetaD simulation of alanine dipeptide, similar to this [tutorial](https://www.plumed.org/doc-v2.8/user-doc/html/lugano-3.html) and many others using alanine dipeptide as a toy system. The unmistakable, *a priori* free energy surface consistent alanine dipeptide's preference towards (cis/trans??) is an instantly recognizable and repeatedly proven result. 
+VisMetaDynamics is a 1-dimensional Langevian integrator using a pre-defined free energy surface. This free energy surface is the result of a short MetaD simulation of alanine dipeptide, similar to this [tutorial](https://www.plumed.org/doc-v2.8/user-doc/html/lugano-3.html) and many others using alanine dipeptide as a toy system. The unmistakable, *a priori* free energy surface consistent alanine dipeptide's preference towards (cis/trans??) is an instantly recognizable and repeatedly proven result, both computationally and experimentally. 
 ## Installation
 
 # Troubleshooting

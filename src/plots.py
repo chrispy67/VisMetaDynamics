@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from dipep_potential import V_potential, V_deriv
+from src.dipep_potential import V_potential, V_deriv
 import matplotlib.animation as animation
 import os
 from src import config
@@ -94,6 +94,17 @@ def fes(potential):
     fig.savefig('static/fes.png')
 
     return (fig, plot)
+
+
+
+def reweight(bias):
+    x = np.linspace(-np.pi, np.pi, len(bias))
+
+    #F(s, t) ~= -V(s, t) + C
+    C = (bias - np.min(bias)) #normalization constant of integration?
+    # print(C)
+    # plt.plot(x, -bias - C, label='Correct for C')
+    plt.plot(x, -bias, label='-bias')
 
 
 # if steps < frames: sim is cut short

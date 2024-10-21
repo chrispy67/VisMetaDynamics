@@ -81,9 +81,11 @@ V_potential, V_deriv = V_x()
 
 # Plot original data and the best sine-cosine fitting
 if __name__ == '__main__':
+    x = np.arange(-np.pi, np.pi, 0.01)
     # make the minimum energy the new zero point
     plt.scatter(phi, energy, label='Free-energy surface of Alanine Dipeptide dihedral')
-    plt.plot(phi, V_potential(phi), label='Best sine-cosine fit', color='red')
+    plt.plot(x, V_potential(x), label='Best sine-cosine fit', color='red')
+    plt.plot(x, -V_deriv(x), label='F(x)')
     plt.legend()
     plt.show()
 

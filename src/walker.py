@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from dipep_potential import V_potential, V_deriv
-from plots import hills_time, fes, rads_time, animate_md, energy_time
+from src.dipep_potential import V_potential, V_deriv
+from src.plots import hills_time, fes, rads_time, animate_md, energy_time, reweight
 from src import config
 import time
 import logging
@@ -31,7 +31,7 @@ mratio = 10 #what to do here? Maybe this is something I enforce a min/max for as
 steps = config.steps
 x0 = config.x0
 T = config.temp  # Initial temperature
-dt = config.timestep  # Time step
+dt = 0.02  # Time step is FIXED now
 t = 0  # Time
 m = 1  # Mass
 
@@ -53,7 +53,8 @@ def force(r, s, w, delta):
     F = V_deriv(r) #function notation is at odds with the potential one-liner 
     Fpot = -F
 
-    if config.metad: 
+    if config.metad:
+        # does THIS need to be periodic??
         Fbias = np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2))) # Metadynamics eq
     else:
         Fbias = 0
@@ -92,7 +93,7 @@ E[0] = 0.5 * p**2 + v
 # Plot 1D FES
 xlong = np.arange(-np.pi, np.pi, 0.01) #len of bias array is directly related to this. 
 vcalc, first = force(xlong, 0, w, delta)
-bias = np.zeros((len(xlong), ), dtype=float) # this array size needs to be changed to fit periodic gaussians?
+bias = np.zeros((len(xlong), ), dtype=float) # this array does NOT need to change size; bias[-1] = is just the last entry
 
 print(f" Number of steps: {steps}")
 print(f" Initial x coord: {x0:.2f} radians")
@@ -144,7 +145,6 @@ for i in range(steps):
                     #dimensions of gaussian
                     mean_s = np.mean(bias_k)
                     sigma_s = np.std(bias_k)
-                    # print(mean_s + 5*sigma_s)
 
                     if rad_k + (mean_s + 5 * sigma_s) > np.pi: # the 2d gaussian stretches arcross π
                         # print('***PBC ENCOUNTERED***')
@@ -199,15 +199,6 @@ print(np.shape(bias))
 # OR we can do thisfor legibility
 sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 
-
-def reweight(bias):
-    x = np.linspace(-np.pi, np.pi, len(bias))
-
-    #F(s, t) ~= -V(s, t) + C
-    C = (bias - np.min(bias)) #normalization constant of integration?
-    # print(C)
-    plt.plot(x, -bias - C, label='Correct for C')
-    plt.plot(x, -bias, label='no C')
 
 reweight(bias)
 # fes(V_potential)

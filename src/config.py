@@ -4,5 +4,5 @@ temp = 313
 x0 = 2.5
 metad = True
 w = 1.2
-delta = 0.2
+delta = 0.1
 hfreq = 100
