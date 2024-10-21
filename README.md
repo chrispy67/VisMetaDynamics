@@ -6,6 +6,8 @@ An interactive tutorial to metadynamics and enhanced sampling techniques for mol
 
 ## <b>What is Metadynamics?</b>
 Metadynamics (MetaD) is an enhanced sampling technique used in conjunction with molecular dynamics (MD) simulations to sample rare events by encouraging a system to adopt otherwise energetically unfavorable configurations. Most importantly, MetaD allows the free energy landscape of a particular observable to be recovered by a process called reweighting. The potential as a function of time is modeled by equation below. 
+
+
 $$
 V_S(t) = t_0 \sum_{t'=\tau_G} W_0 \exp \left( - \frac{(S_i - S_i(t'))^2}{2\sigma_i^2} \right)
 $$
