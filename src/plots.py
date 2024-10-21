@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from src.dipep_potential import V_potential, V_deriv
+from dipep_potential import V_potential, V_deriv
 import matplotlib.animation as animation
 import os
-from src import config
+import config
 
 
 # - All of these functions should take in arrays and spit out a graph.

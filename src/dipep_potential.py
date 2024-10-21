@@ -20,7 +20,7 @@ def read_fes(file):
     infile.close()
     return np.array(x), np.array(y)
 
-phi, energy = read_fes('MD/fes-std.dat')
+phi, energy = read_fes('../MD/fes-std.dat')
 
 # we need two functions because there are two parameters to tune for:
 #   - number of sine/cosine terms to add

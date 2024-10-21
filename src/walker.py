@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from src.dipep_potential import V_potential, V_deriv
-from src.plots import hills_time, fes, rads_time, animate_md, energy_time, reweight
-from src import config
+from dipep_potential import V_potential, V_deriv
+from plots import hills_time, fes, rads_time, animate_md, energy_time, reweight
+import config
 import time
 import logging
 import argparse
