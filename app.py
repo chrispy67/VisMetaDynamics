@@ -2,13 +2,12 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for
 import subprocess
 import threading
 import webbrowser
-from src.plots import clear_images
 
 app = Flask(__name__, template_folder='docs')
 
 
 # This needs to be placed OUTSIDE run_script(), since that function represents the 'begin simulation' button
-clear_images('static/fes.png', overwrite=True)
+# clear_images('static/fes.png', overwrite=True)
 # clear_images('static/MD_simulation.gif')
 
 # Clunky, but I don't think I can deal with args the same way I did with cgen2gmx.
@@ -83,7 +82,7 @@ def run_script():
         # since I don't have the budget for cloud computing costs, I may need to offer a way to
         # select or use a different python environment if I want OTHER people to use this.
         # The option to select an interpreter/install dependecies should be here. 
-        result = subprocess.check_output(['python', 'walker.py'], text=True)
+        result = subprocess.check_output(['python', 'src/walker.py'], text=True)
 
         image_url = url_for('static', filename='fes.png') # EXAMPLE 
 

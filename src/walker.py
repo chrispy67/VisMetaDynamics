@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from dipep_potential import V_potential, V_deriv
-from plots import hills_time, fes, rads_time, animate_md, energy_time, reweight
+# from plots import hills_time, fes, rads_time, animate_md, energy_time, reweight
 import config
 import time
 import logging
@@ -200,11 +200,11 @@ print(np.shape(bias))
 sim_time = np.linspace(0, steps+1, steps+1) * dt #ns
 
 
-reweight(bias)
+# reweight(bias)
 # fes(V_potential)
 # rads_time(q, sim_time)
 # energy_time(E, sim_time)
-animate_md(V, bias, q)
+# animate_md(V, bias, q)
 
 plt.show()
 
