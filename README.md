@@ -12,7 +12,6 @@ Users should try several combinations of parameters and explore the effects thes
 
 
 ## <b> What/who is this resource for for? </b>
----------
 VisMetaDynamics is designed for someone already familiar with MD simulations. This tool is meant to augment [existing tutorials](http://www.plumed-tutorials.org/browse.html) and resources by offering a visual, qualitative understanding of the effect of hyperparameters on the resulting free energy surface and performance. Users are encouraged to play with these sliders and observe changes in simulation performance, accuracy of the free energy surface, and overall simulation behavior as a function of these parameters. 
 
 # Installation
@@ -20,6 +19,14 @@ Using this tutorial is as simple as cloning the repo and running `python app.py`
 
 > [!NOTE]
 >  This tutorial uses common libraries and has few dependencies, such as Scipy, Numpy, and Flask. `environment.yml` is included if needed. 
+
+> [!NOTE]
+> If the Flask webpage is not opening or showing a black screen, try running `python src/walker.py` to get the raw output of the integrator with the parameters from `src/config.py`
+<br>
+
+> [!CAUTION]
+> Maximizing simulation steps and minimizing hill frequency is computationally expensive, explore at your own risk. 
+<br>
 
 
 
@@ -41,23 +48,13 @@ $$
 V_S(t) = t_0 \sum_{t'=\tau_G} W_0 \exp \left( - \frac{(S_i - S_i(t'))^2}{2\sigma_i^2} \right)
 $$
 
-Once the metadynamics simulation has converged, the underlying free energy surface of the chosen CV space can be visualized. The graph below shows the reweighted free energy surface of a real meta dynamics simulation. Details to reproduce the results of this simulation can be found in `MD/`. The underlying potential of the integrator is a sine/cosine fit of this free energy surface. Understanding how the parameters in the sliders affect the method's ability to reproduce the underlying potential exactly is the primary goal of this tutorial. 
+Once the metadynamics simulation has converged, the underlying free energy surface of the chosen CV space can be visualized. The graph below shows the reweighted free energy surface of a real metadynamics simulation. Details to reproduce the results of this simulation can be found in `MD/`. The underlying potential of the integrator is a sine/cosine fit of this free energy surface. Understanding how the parameters in the sliders affect the method's ability to reproduce the underlying potential exactly is the primary goal of this tutorial. 
 
 
 <p float="left">
     <img src="docs/underlying_fes.png">
 </p>
 
-
-# Troubleshooting
-
-> [!NOTE]
-> If the Flask webpage is not opening or showing a black screen, try running `python src/walker.py` to get the raw output of the integrator with the parameters from `src/config.py`
-<br>
-
-> [!CAUTION]
-> Maximizing simulation steps and minimizing hill frequency is computationally expensive, explore at your own risk. 
-<br>
 
 # Contributing 
 
