@@ -56,7 +56,7 @@
                 </div>
             
                 <div class="slider-container">
-                    <label class="slider-label" for="startPointRange">Θ (radians):</label>
+                    <label class="slider-label" for="startPointRange">Φ (radians):</label>
                     <input type="range" name="x0" id="startPointRange" value="0" step="0.05" oninput="updateValue('startPointValue', this.value)">
                     <input type="text" id="startPointValue" value="0" readonly>
 
@@ -69,7 +69,7 @@
                 <h2>Metadynamics Parameters</h2>
             
                 <div class="slider-container">
-                    <label class="slider-label" for="gaussianHeight">ω<sub>0</sub> (kcal):</label>
+                    <label class="slider-label" for="gaussianHeight">W<sub>0</sub> (kcal):</label>
                     <input type="range" name="w" id="hillRange" min="0.1" max="2" value="1.2" step="0.1" oninput="updateValue('hillValue', this.value)">
                     <input type="text" id="hillValue" value="1.2" readonly>
 
@@ -82,12 +82,12 @@
                     <input type="range" name="delta" id="hillWidthRange" min="0.1" max="1.5" value="0.1" step="0.1" oninput="updateValue('hillWidthValue', this.value)">
                     <input type="text" id="hillWidthValue" value="0.1" readonly>
 
-                    <p class="description">The x-component of the biases added in the form of Gaussian kernels. Effects the width and standard deviation of the normally distributed bias.</p>
+                    <p class="description">The x-component of the biases added in the form of Gaussian kernels. Affects the width and standard deviation of the normally distributed bias.</p>
 
                 </div>
             
                 <div class="slider-container">
-                    <label class="slider-label" for="hillFrequency">T<sub>g</sub>(steps):</label>
+                    <label class="slider-label" for="hillFrequency">τ (steps):</label>
                     <input type="range" name="hfreq" id="hfreqRange" min="10" max="500" value="50" step="10" oninput="updateValue('hfreqValue', this.value)">
                     <input type="text" id="hfreqValue" value="50" readonly>
 
