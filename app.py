@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for
 import subprocess
 import threading
 import webbrowser
-
+import time
 app = Flask(__name__, template_folder='docs')
 
 
@@ -82,16 +82,30 @@ def run_script():
         # since I don't have the budget for cloud computing costs, I may need to offer a way to
         # select or use a different python environment if I want OTHER people to use this.
         # The option to select an interpreter/install dependecies should be here. 
-        result = subprocess.check_output(['python', 'src/walker.py'], text=True)
+        # result = subprocess.check_output(['python', 'src/walker.py'], text=True)
+        from src.walker import walker, integrator_performance
+        t0 = time.time()
+        bias, q, V, E = walker()
+        print(bias)
+        tplus = time.time()
+        integrator_performance(t0, tplus)
+
+        bias_list = bias.tolist()
+        q_list = q.tolist()
+        V_list = V.tolist()
+        E_list = E.tolist()
 
         image_url = url_for('static', filename='fes.png') # EXAMPLE 
 
-        grid_items = result.splitlines()
-        return jsonify({'output': grid_items, 'image_url': image_url}) # modify this dict to return ALL images of interest
+        return jsonify({'bias': bias_list, 
+        'q': q_list,
+        'V': V_list,
+        'E': E_list,
+        'image_url': image_url}) # modify this dict to return ALL images of interest
     except Exception as e:
         return jsonify({'error': str(e)})
 
 
 if __name__ == '__main__':
-    threading.Timer(1, open_browser).start() #automatically open browser
+    threading.Timer(2, open_browser).start() #automatically open browser
     app.run(debug=True, use_reloader=False)
