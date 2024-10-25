@@ -17,6 +17,8 @@ VisMetaDynamics is designed for someone already familiar with MD simulations. Th
 
 # Installation
 Using this tutorial is as simple as cloning the repo and running `python app.py`. This will automatically open up a Flask webpage on your default browser. The Python scripts are run locally and can be computationally intensive, depending on the parameters chosen and hardware. The ranges of the values on the sliders are chosen to allow the user to explore many combinations of parameters, but may result in <b>computationally intractable calculations</b>.
+
+> [!NOTE]
 >  This tutorial uses common libraries and has few dependencies, such as Scipy, Numpy, and Flask. `environment.yml` is included if needed. 
 
 
@@ -28,8 +30,8 @@ First described by [Laio and Parrinello][1] in 2002, metadynamics has proven to 
 Pictured below are stick representations of  *cis* (left) and *trans* (right) configurations of alanine dipeptide. The dihedral angle Φ corresponding to the two metastable states are also defined.  
 
 <p float="left">
-    <img src="docs/global_min.png"width="45%%"/>
-    <img src="docs/metastable_min.png" width="45%"/> 
+    <img src="/docs/global_min.png"width="45%%"/>
+    <img src="/docs/metastable_min.png" width="45%"/> 
 </p>
 
 
@@ -49,11 +51,11 @@ Once the metadynamics simulation has converged, the underlying free energy surfa
 
 # Troubleshooting
 
-[!NOTE]
+> [!NOTE]
 > If the Flask webpage is not opening or showing a black screen, try running `python src/walker.py` to get the raw output of the integrator with the parameters from `src/config.py`
 <br>
 
-[!CAUTION]
+> [!CAUTION]
 > Maximizing simulation steps and minimizing hill frequency is computationally expensive, explore at your own risk. 
 <br>
 
