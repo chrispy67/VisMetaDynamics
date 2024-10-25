@@ -9,6 +9,7 @@
     <meta name="description" content="VisMetaDynamics">
     <title>VisMetaDynamics</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -16,19 +17,51 @@
 </head>
 <body>
 
-    <!-- Navigation -->
-    <header>
-        <nav>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="about.html">About</a></li>
-            </ul>
-        </nav>
-    </header>
+<!-- Navigation -->
+<header>
+    <nav>
+        <ul>
+            <li class="title"><a href="index.html">VisMetaDynamics</a></li>
+            <li class="social">
+                <a href="https://github.com/chrispy67" target="_blank" aria-label="GitHub">
+                    <i class="fa fa-github" style="font-size:24px;"></i>
+                </a>
+            </li>
+            <li class="social">
+                <a href="https://www.linkedin.com/in/christian-phillips-397b38245/" target="_blank" aria-label="LinkedIn">
+                    <i class="fa fa-linkedin-square" style="font-size:24px"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
 
     <!-- Main content -->
     <section class="main-content">
         <h2>Introduction to Metadynamics </h2>
+
+        <p>
+            Metadynamics simulation paramters must be carefully chosen to ensure adequate sampling and simulation performance. This resource offers a quick and easy way
+            to visualize the affect these parameters have on the resulting free energy surface. 
+        </p>
+
+        <p>
+            VisMetaDynamics uses a 1-dimensional Langevian integrator with a predefined potential. This tutorial uses
+            a real integrator and properly applies bias as a function of these parameters to a well known, periodic system of alanine dipeptide. For more information, please consult the <a href="https://github.com/chrispy67/VisMetaDynamics">Github repository.</a> 
+        </p>
+        <p>
+            <b>Trying to recreate the underlying free energy surface exactly is NOT the goal of this tutorial.</b>
+            Rather, users should be trying to answer these questions:
+
+            <ul>
+                <li>How do the metadynamics parameters affect resolution of the free energy surface? </li>
+                <li>How do the metadynamics parameters affect simulation performance? Am I wasting time adding really small Gaussians? </li>
+                <li>How does the starting point of the simulation affect sampling? What about simulation time?</li>
+                <li>What does good sampling or "convergence" look like?</li>
+                <li>If the underlying potential is NOT known, how could these results be <b>misinterpreted</b>?</li>
+                <li><b>How can I get an adequate estimate of the free energy surface with the lowest computational cost?</b></li>
+            </ul>
+        </p>
         <p>
             $$V_S(t) = t_0 \sum_{t'=\tau_G} W_0 \exp \left( - \frac{(S_i - S_i(t'))^2}{2\sigma_i^2} \right)$$
         </p>
@@ -37,11 +70,11 @@
     <form id="paramsForm">
         <div class="container">
             <section>
-                <h2>Molecular Dynamics Simulations Parameters</h2>
+                <h2>Molecular Dynamics Simulation Parameters</h2>
             
                 <div class="slider-container">
                     <label class="slider-label" for="temperatureRange">Temperature (K):</label>
-                    <input type="range" name="temp" id="temperatureRange" min="200" max="400" value="310" step="1" oninput="updateValue('temperatureValue', this.value)"> 
+                    <input type="range" name="temp" id="temperatureRange" min="200" max="400" value="310" step="1" oninput="updateValue('temperatureValue', this.value, 0)"> 
                     <input type="text" id="temperatureValue" value="310" readonly>
 
                     <p class="description">Temperature defines the average kinetic energy of the solvated system. Increasing the temperature increases unbiased atomic fluctuations.</p>
@@ -49,7 +82,7 @@
             
                 <div class="slider-container">
                     <label class="slider-label" for="stepRange">Steps:</label>
-                    <input type="range" name="steps" id="stepRange" min="1000" max="500000" value="10000" step="1" oninput="updateValue('stepValue', this.value)">
+                    <input type="range" name="steps" id="stepRange" min="1000" max="500000" value="10000" step="10" oninput="updateValue('stepValue', this.value, 0)">
                     <input type="text" id="stepValue" value="10000" readonly>
                     <p class="description">Length of the simulation in discrete molecular dynamics steps. Increasing steps creates longer simulations and improves sampling.</p>
 
@@ -57,10 +90,10 @@
             
                 <div class="slider-container">
                     <label class="slider-label" for="startPointRange">Φ (radians):</label>
-                    <input type="range" name="x0" id="startPointRange" value="0" step="0.05" oninput="updateValue('startPointValue', this.value)">
+                    <input type="range" name="x0" id="startPointRange" value="0" step="0.05" oninput="updateValue('startPointValue', this.value, 2)">
                     <input type="text" id="startPointValue" value="0" readonly>
 
-                    <p class="description">The starting point, in radians, of the φ angle of alanine dipeptide. In practice, the collective variable observed in a PDB structure is the most thermodynamically favorable.</p>
+                    <p class="description">The starting point, in radians, of the φ dihedral angle of alanine dipeptide. In practice, the collective variable observed in a PDB structure is the most thermodynamically favorable.</p>
 
                 </div>
             </section>
@@ -70,7 +103,7 @@
             
                 <div class="slider-container">
                     <label class="slider-label" for="gaussianHeight">W<sub>0</sub> (kcal):</label>
-                    <input type="range" name="w" id="hillRange" min="0.1" max="2" value="1.2" step="0.1" oninput="updateValue('hillValue', this.value)">
+                    <input type="range" name="w" id="hillRange" min="0.1" max="2" value="1.2" step="0.1" oninput="updateValue('hillValue', this.value, 1)">
                     <input type="text" id="hillValue" value="1.2" readonly>
 
                     <p class="description">The y-component of the biases added in the form Gaussian kernels in energy units.</p>
@@ -79,7 +112,7 @@
             
                 <div class="slider-container">
                     <label class="slider-label" for="gaussianWidth">σ (radians):</label>
-                    <input type="range" name="delta" id="hillWidthRange" min="0.1" max="1.5" value="0.1" step="0.1" oninput="updateValue('hillWidthValue', this.value)">
+                    <input type="range" name="delta" id="hillWidthRange" min="0.1" max="1.5" value="0.1" step="0.1" oninput="updateValue('hillWidthValue', this.value, 1)">
                     <input type="text" id="hillWidthValue" value="0.1" readonly>
 
                     <p class="description">The x-component of the biases added in the form of Gaussian kernels. Affects the width and standard deviation of the normally distributed bias.</p>
@@ -88,7 +121,7 @@
             
                 <div class="slider-container">
                     <label class="slider-label" for="hillFrequency">τ (steps):</label>
-                    <input type="range" name="hfreq" id="hfreqRange" min="10" max="500" value="50" step="10" oninput="updateValue('hfreqValue', this.value)">
+                    <input type="range" name="hfreq" id="hfreqRange" min="10" max="500" value="50" step="10" oninput="updateValue('hfreqValue', this.value, 0)">
                     <input type="text" id="hfreqValue" value="50" readonly>
 
                     <p class="description">Rate of bias deposition as a function of simulation steps. Increasing this value will add bias more frequently.</p>
@@ -99,7 +132,7 @@
                 <h3> Metadynamics on/off</h3>
                 <label for="rockerSwitch"></label>
                 <label class="switch">
-                    <input type="checkbox" name="metadynamicsStatus" id="rockerSwitch">
+                    <input type="checkbox" name="metadynamicsStatus" id="rockerSwitch" checked>
                     <span class="slider"></span>
                 </label>
             </section>
@@ -107,7 +140,9 @@
     </form>
 
         <!-- THE BUTTON -->
-        <button id="runScriptBtn">Begin Simulation</button>
+        <div class="center-container">
+            <button id="runScriptBtn">Begin Simulation</button>
+        </div>
 
 <!--RESULTS-->
         
@@ -119,15 +154,6 @@
             width="600"
             height="400" />
 
-            <h2>
-                Metadynamics simulation:
-            </h2>
-            <img 
-            id="resultGIF"
-            src="static/MD_simulation.gif"
-            alt="Metadynamics of alanine dipeptide dihedral angle"
-            width="600"
-            height="400" />
 
 <section>
     <div id="output"></div>
@@ -141,7 +167,7 @@
 </html>
 
 
-<!--
+<!-- 
 The workaround for HTML not letting me format π inside the document
 -->
 <script>
@@ -149,29 +175,33 @@ The workaround for HTML not letting me format π inside the document
     document.getElementById('startPointRange').min = -Math.PI;
     document.getElementById('startPointRange').max = Math.PI;
 
-    function updateValue(inputId, value) {
-        // Display the slider value in the text box and limit to 4 decimal places
-        document.getElementById(inputId).value = parseFloat(value).toFixed(4);
+    function updateValue(inputId, value, decimals) {
+
+        // This lets me choose the number of sig figs to round to for each slider
+        const factor = Math.pow(10, decimals);
+        const roundedValue = Math.round(value * factor) / factor;
+        
+        document.getElementById(inputId).value = roundedValue;
     }
 </script>
 
-<!--
-This defines the function that updates the values for hyperparameters
-- There was a weird issue with the startPointRange function holding up the whole script?
--->
 <script>
-    // Initialize the startPointRange slider after the document loads
-    document.addEventListener("DOMContentLoaded", function() {
-        const startPointRange = document.getElementById('startPointRange');
-        startPointRange.min = -Math.PI;
-        startPointRange.max = Math.PI;
-    });
-
-    // Combined updateValue function
-    function updateValue(inputId, value) {
-        document.getElementById(inputId).value = parseFloat(value).toFixed(4);
+    // This function will handle updating the displayed value with the specified number of decimal places
+    function updateValue(inputId, value, decimals) {
+        const factor = Math.pow(10, decimals); // Rounding factor for desired decimal places
+        const roundedValue = Math.round(value * factor) / factor;
+        document.getElementById(inputId).value = roundedValue;
     }
+    
+    // Initialize sliders after the document loads
+    document.addEventListener("DOMContentLoaded", function() {
+        // Set min and max for sliders with special requirements, e.g., `startPointRange`
+        const startPointRange = document.getElementById('startPointRange');
+        startPointRange.min = (-Math.PI).toFixed(2);
+        startPointRange.max = Math.PI.toFixed(2);
+    });
 </script>
+
 
 <script>
 function sendSwitchState() {
