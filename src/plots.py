@@ -1,9 +1,21 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from src.dipep_potential import V_potential, V_deriv
 import matplotlib.animation as animation
 import os
 from src import config
+import pickle
+from V_x_functions import V_x   
+
+try:
+    with open("V_x_functions.pkl", "rb") as f:
+        import V_x_functions
+        V_x_class = pickle.load(f)
+
+# trying to get around source issue when importing as module
+except FileNotFoundError:
+    with open("src/V_x_functions.pkl", "rb") as f:
+        V_x_class = pickle.load(f)
+
 
 
 # - All of these functions should take in arrays and spit out a graph.
@@ -50,7 +62,6 @@ def update(frame, x_data, y_data, obj, plot_type='scatter'):
     return obj,
 
 
-
 def hills_time(hills, time):
     fig, ax = plt.subplots()
     scat = ax.scatter(time, hills)
@@ -80,10 +91,10 @@ def energy_time(energy, time):
 
 #####-----Template for formatting images for the Flask app-----#####
 # - This is the simplest case, other functions will be different
-def fes(potential):
+def fes():
     fig, ax = plt.subplots()
-    x = np.linspace(-np.pi, np.pi, 100)
-    V = potential(x) # this is assuming np.poly1D function notation
+    x = np.linspace(-np.pi, np.pi, 600)
+    V = V_x_class.potential(x) # this is assuming np.poly1D function notation
     plot = ax.plot(x, V)
 
     ax.set(xlim=[-np.pi, np.pi], ylim=[-25, 100], 
@@ -91,20 +102,21 @@ def fes(potential):
         ylabel='Change in Free Energy')
     
     # MUST ADD TO EACH FUNCTION I USE IF I WANT to populate the Flask application
-    fig.savefig('static/fes.png')
+    # fig.savefig('static/fes.png')
 
     return (fig, plot)
 
 
-
 def reweight(bias):
+    fig, ax = plt.subplots()
     x = np.linspace(-np.pi, np.pi, len(bias))
 
     #F(s, t) ~= -V(s, t) + C
-    C = (bias - np.min(bias)) #normalization constant of integration?
+    C = (bias - np.min(bias)) #normalization constant of integration? Need help here
     # print(C)
     # plt.plot(x, -bias - C, label='Correct for C')
-    plt.plot(x, -bias, label='-bias')
+    plot = plt.plot(x, -bias, label='-bias')
+    return (fig, plot)
 
 
 # if steps < frames: sim is cut short
@@ -114,13 +126,13 @@ def reweight(bias):
 def animate_md(V, hills, rads):
     # copied from fes()
     fig, ax = plt.subplots()
-    frames = config.steps
+    frames = len(rads) 
     
     # ensures equal length arrays
     x = np.arange(-np.pi, np.pi, (2*np.pi / len(hills)))
 
     #pre plots
-    ax.plot(x, V_potential(x), alpha=0.6, label='free energy surface')
+    ax.plot(x, V_x_class.potential(x), alpha=0.6, label='free energy surface')
     # ax.plot(x, hills, linewidth=2, label='Bias')
     
     # need to change the size (volume of the Gaussian) for each deposition
