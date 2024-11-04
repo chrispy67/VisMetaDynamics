@@ -7,6 +7,17 @@ body {
     background-color: #f4f4f4;
 }
 
+.flex-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.summary-container {
+    flex: 1 1 100%;
+}
+
 header {
     position: relative;
     background-color: #333;
@@ -52,12 +63,6 @@ nav ul li a {
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 }
 
-
-.image-container {
-    text-align: center;
-    margin: 20px 0;
-}
-
 .image-container img {
     max-width: 100%;
     height: auto;
@@ -83,14 +88,18 @@ footer {
 
 .grid-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-gap: 10px;
-    max-width: 200px;
+    grid-template-columns: repeat(2, 1fr); /* Two columns */
+    grid-template-rows: repeat(2, auto); /* Two rows */
+    gap: 20px;
+    max-width: 100%;
+    justify-items: center;
 }
 
-.grid-container img{
+.grid-item {
     width: 100%;
-    height: auto
+    height: auto;
+    object-fit: cover; /* Maintain image aspect ratio */
+    max-width: 500px; /* Set a max-width to control image size */
 }
 
 .slider-container {
