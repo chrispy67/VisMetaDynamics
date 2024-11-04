@@ -181,46 +181,46 @@ def walker(steps, x0, T, metad, w, delta, hfreq):
     
     return SIMULATION_DATA
 
-summary_dict = walker(config.steps, config.x0, config.temp, 
-    config.metad, config.w, config.delta, config.hfreq)
+# summary_dict = walker(config.steps, config.x0, config.temp, 
+#     config.metad, config.w, config.delta, config.hfreq)
 
 
-fes()
-animate_md(summary_dict['V'], summary_dict['bias'], summary_dict['q'])
-plt.show()
-print(json.dumps(summary_dict))
+# fes()
+# animate_md(summary_dict['V'], summary_dict['bias'], summary_dict['q'])
+# plt.show()
+# print(json.dumps(summary_dict))
 
 
-# if __name__ == '__main__':
-#     import config as config 
-#     import time
+if __name__ == '__main__':
+    import config as config 
+    import time
     
-#     # If you want to pickle a class, the same script MUST know the format of the class
-#     from V_x_functions import V_x   
+    # If you want to pickle a class, the same script MUST know the format of the class
+    from V_x_functions import V_x   
 
-#     with open("V_x_functions.pkl", 'rb') as f:
-#         V_x_class = pickle.load(f)
+    with open("V_x_functions.pkl", 'rb') as f:
+        V_x_class = pickle.load(f)
 
-#     t0 = time.time()
+    t0 = time.time()
 
-#     bias, q, e, V = walker(config.steps, config.x0, config.temp,
-#         config.metad, config.w, config.delta, config.hfreq)
+    summary_dict = walker(config.steps, config.x0, config.temp,
+        config.metad, config.w, config.delta, config.hfreq)
     
-#     tplus = time.time()
+    tplus = time.time()
     
-#     # Need to define generic domain because of new class notation
-#     x = np.arange(-np.pi, np.pi, 0.01)
-#     sim_time = np.linspace(0, config.steps+1, config.steps+1) * dt #ns
+    # Need to define generic domain because of new class notation
+    x = np.arange(-np.pi, np.pi, 0.01)
+    sim_time = np.linspace(0, config.steps+1, config.steps+1) * dt #ns
     
-#     # fes(V_x_class.potential(x))
-#     # reweight(bias)
-#     # rads_time(q, sim_time)
-#     # animate_md(V, bias, q)
+    # fes(V_x_class.potential(x))
+    # reweight(bias)
+    # rads_time(q, sim_time)
+    # animate_md(V, bias, q)
     
-#     plt.show()
+    plt.show()
 
-#     print(f" Number of steps: {config.steps}")
-#     print(f" Initial x coord: {config.x0:.2f} radians")
-#     print(f" Temperature: {config.temp:.2f}")
-#     print(f" Timestep: {dt:.2e}ns")
+    print(f" Number of steps: {config.steps}")
+    print(f" Initial x coord: {config.x0:.2f} radians")
+    print(f" Temperature: {config.temp:.2f}")
+    print(f" Timestep: {dt:.2e}ns")
 

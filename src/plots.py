@@ -11,7 +11,7 @@ try:
         import V_x_functions
         V_x_class = pickle.load(f)
 
-# trying to get around source issue when importing as module
+# Trying to get around source issue when importing as module
 except FileNotFoundError:
     with open("src/V_x_functions.pkl", "rb") as f:
         V_x_class = pickle.load(f)
@@ -62,36 +62,47 @@ def update(frame, x_data, y_data, obj, plot_type='scatter'):
     return obj,
 
 
-def hills_time(hills, time):
+def hills_time(hills, time, save_path = None):
     fig, ax = plt.subplots()
     scat = ax.scatter(time, hills)
 
     ax.set(xlabel='Time (ns)',
         ylabel='hill height (kcal/mol)',
         title='Evolution of Gaussian Height')
+
+    if save_path:
+        fig.savefig(save_path, format='png', dpi=300)
+    
     return (fig, scat)
 
-def rads_time(rad, time):
+def rads_time(rad, time, save_path = None):
     fig, ax = plt.subplots()
     scat = ax.scatter(time, rad, s=2)
 
     ax.set(xlabel='Time (ns)',
         ylabel='Dihedral angle (rad)', 
         title='Dihedral angle (φ) of Alanine Dipeptide')
+
+    if save_path:
+        fig.savefig(save_path, format='png', dpi=300)
+
+    plt.close()
     return (fig, scat)
 
-def energy_time(energy, time):
+def energy_time(energy, time, save_path = None):
     fig, ax = plt.subplots()
     scat = ax.scatter(time, energy)
 
     ax.set(xlabel='Time (ns)',
         ylabel='Energy (kcal/mol)', 
         title='Potential Energy of Dihedral Angle')
+    if save_path:
+        fig.savefig(save_path, format='png', dpi=300)
     return (fig,scat)
 
 #####-----Template for formatting images for the Flask app-----#####
 # - This is the simplest case, other functions will be different
-def fes():
+def fes(save_path = None):
     fig, ax = plt.subplots()
     x = np.linspace(-np.pi, np.pi, 600)
     V = V_x_class.potential(x) # this is assuming np.poly1D function notation
@@ -101,21 +112,27 @@ def fes():
         xlabel = 'phi (radians)',
         ylabel='Change in Free Energy')
     
-    # MUST ADD TO EACH FUNCTION I USE IF I WANT to populate the Flask application
-    # fig.savefig('static/fes.png')
-
+    if save_path:
+        fig.savefig(save_path, format='png', dpi=300)
     return (fig, plot)
 
 
-def reweight(bias):
+def reweight(bias, save_path = None):
     fig, ax = plt.subplots()
     x = np.linspace(-np.pi, np.pi, len(bias))
+
+    bias_array = np.array(bias)
 
     #F(s, t) ~= -V(s, t) + C
     C = (bias - np.min(bias)) #normalization constant of integration? Need help here
     # print(C)
     # plt.plot(x, -bias - C, label='Correct for C')
-    plot = plt.plot(x, -bias, label='-bias')
+    plot = plt.plot(x, -bias_array, label='-bias')
+
+    if save_path:
+        fig.savefig(save_path, format='png', dpi=300)
+
+    plt.close()
     return (fig, plot)
 
 
