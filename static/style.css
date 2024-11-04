@@ -83,15 +83,14 @@ footer {
 
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr 1fr;
     grid-gap: 10px;
+    max-width: 200px;
 }
 
-.grid-item {
-    background-color: lightgray;
-    border: 1px solid black;
-    padding: 20px;
-    text-align: center;
+.grid-container img{
+    width: 100%;
+    height: auto
 }
 
 .slider-container {
@@ -188,5 +187,5 @@ input:checked + .slider:before {
 }
 
 #runScriptBtn:hover {
-    background-color: #45a049;    /* Slightly darker hover color */
+    background-color: #d35ed7;    /* Slightly darker hover color */
 }
