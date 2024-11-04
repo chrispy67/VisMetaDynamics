@@ -8,10 +8,6 @@ import json
 app = Flask(__name__, template_folder='docs')
 
 
-# This needs to be placed OUTSIDE run_script(), since that function represents the 'begin simulation' button
-# clear_images('static/fes.png', overwrite=True)
-# clear_images('static/MD_simulation.gif')
-
 # Clunky, but I don't think I can deal with args the same way I did with cgen2gmx.
 # Each time a new simulation is run, the config file is overwritten with update_config()
 def update_config(steps, temp, x0, #mratio,
@@ -87,9 +83,6 @@ def run_script():
         )
 
         output_data = json.loads(result.stdout)
-        
-        # HERE, the response is expecting all this value in a dictionary...
-        # but it is NOT ACTUALLY BEING PASSED IN run_walker.py; I am simply calling the function to overwrite the previous images. 
         
         response = {
             'ns_day': output_data.get('ns/day', 0),

@@ -24,22 +24,6 @@ except FileNotFoundError:
 # Universal values | font size, colors, etc
 plt.rcParams["axes.grid"] = True  # Enables grid for all plots
 
-def clear_images(image_path, overwrite=True):
-    """
-    Because this application may be run many times, this is the best way to ensure that
-    the files produced by walker.py from previous runs to do not populate the image.
-    """
-    if os.path.exists(image_path):
-        if overwrite: #is True, keeping the files in place
-            os.remove(image_path)
-        
-        else: #write backup file as bck.fes_{n}.png where n is lowest common integer (a la Plumed backup syntax)
-            while os.path.exists(os.path.join('static', f"bck.fes_{n}.png")):
-                n += 1
-            
-            backup_path = os.path.join('static', f"bck.fes_{n}.png")
-            os.rename(image_path, backup_path)
-
 
 mratio = 10 # as mratio increases, time between each frame increases
 
@@ -72,7 +56,7 @@ def hills_time(hills, time, save_path = None):
 
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
-    
+        plt.close()
     return (fig, scat)
 
 def rads_time(rad, time, save_path = None):
@@ -85,8 +69,8 @@ def rads_time(rad, time, save_path = None):
 
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
+        plt.close()
 
-    plt.close()
     return (fig, scat)
 
 def energy_time(energy, time, save_path = None):
@@ -98,6 +82,7 @@ def energy_time(energy, time, save_path = None):
         title='Potential Energy of Dihedral Angle')
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
+        plt.close()
     return (fig,scat)
 
 #####-----Template for formatting images for the Flask app-----#####
@@ -114,6 +99,7 @@ def fes(save_path = None):
     
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
+        plt.close()
     return (fig, plot)
 
 
