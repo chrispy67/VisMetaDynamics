@@ -1,8 +1,10 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import Flask, render_template, jsonify, request, url_for
 import subprocess
 import threading
 import webbrowser
-import time
+import src.config as config
+import json
+
 app = Flask(__name__, template_folder='docs')
 
 
@@ -67,7 +69,6 @@ def process_switch():
     
     return jsonify({'success': True, 'metadynamics': metadynamics_state})
 
-
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -75,37 +76,40 @@ def home():
 def open_browser():
     webbrowser.open_new('http://127.0.0.1:5000/')
 
-
 @app.route('/run-script', methods=['GET'])
 def run_script():
-    try: #by default, this is using my local interpreter: /opt/homebrew/bin/python3
-        # since I don't have the budget for cloud computing costs, I may need to offer a way to
-        # select or use a different python environment if I want OTHER people to use this.
-        # The option to select an interpreter/install dependecies should be here. 
-        # result = subprocess.check_output(['python', 'src/walker.py'], text=True)
-        from src.walker import walker, integrator_performance
-        t0 = time.time()
-        bias, q, V, E = walker()
-        print(bias)
-        tplus = time.time()
-        integrator_performance(t0, tplus)
+    try:
+        result = subprocess.run(
+            ['python', 'src/run_walker.py'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
 
-        bias_list = bias.tolist()
-        q_list = q.tolist()
-        V_list = V.tolist()
-        E_list = E.tolist()
+        output_data = json.loads(result.stdout)
+        
+        # HERE, the response is expecting all this value in a dictionary...
+        # but it is NOT ACTUALLY BEING PASSED IN run_walker.py; I am simply calling the function to overwrite the previous images. 
+        
+        response = {
+            'ns_day': output_data.get('ns/day', 0),
+            'sim_time': output_data.get('sim_time', 0),
+            # 'output': list(output_data.keys()), #in case there is anything else I want to access
 
-        image_url = url_for('static', filename='fes.png') # EXAMPLE 
+            # links to files created by run_walker.py; where all the graphing functions are called.
+            'rads_time_url': '/static/images/rads_time.png',
+            'fes_url': '/static/images/reweight_fes.png'
+        }
 
-        return jsonify({'bias': bias_list, 
-        'q': q_list,
-        'V': V_list,
-        'E': E_list,
-        'image_url': image_url}) # modify this dict to return ALL images of interest
-    except Exception as e:
-        return jsonify({'error': str(e)})
+        return jsonify(response)
+
+    except subprocess.CalledProcessError as e:
+            # Capture stderr for specific error details and print to Flask site
+            error_msg = e.stderr or "Unknown error occurred in run_walker.py"
+            print(f"Error in run_walker.py: {error_msg}")  # Logs to server console for debugging
+            return jsonify({'error': f'Simulation failed: {error_msg}'})
 
 
 if __name__ == '__main__':
     threading.Timer(2, open_browser).start() #automatically open browser
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True, use_reloader=False, threaded=True)

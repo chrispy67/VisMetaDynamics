@@ -144,22 +144,24 @@
             <button id="runScriptBtn">Begin Simulation</button>
         </div>
 
-<!--RESULTS-->
+        <div class="flex-container">
+            <div class="summary-container">
+                <h2>Simulation Summary:</h2>
+                <div id="output"></div>
+                <div id="ns-per-day"></div>
+                <div id="sim-time"></div>
+            </div>
         
-        <h2>Results:</h2>
-        <img
-            id="resultImage"
-            src="static/fes.png"
-            alt="Pre-determined Free Energy Surface"
-            width="600"
-            height="400" />
-
-
-<section>
-    <div id="output"></div>
-    <div class="grid-container">
-        <!-- Grid items will be dynamically inserted here -->
-    </div> 
+            <!-- Grid container for images -->
+            <div class="grid-container">
+                <!-- Image placeholders (optional, will be replaced with AJAX updates) -->
+                <img id="fesImage" class="grid-item">
+                <img id="radsTimeImage" class="grid-item">
+                <!-- <img src="" alt="Image 3" id="img3" class="grid-item">
+                <img src="" alt="Image 4" id="img4" class="grid-item"> -->
+            </div>
+        </div>
+        
 <!-- Anything ABOVE this line is in the main textbox -->
 </section>
 
@@ -233,36 +235,30 @@ function sendSwitchState() {
 <!--
 Here is the function that defines the Run Simulation button.
 -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script>
     $('#runScriptBtn').click(function() {
-        // Get the state of the switch
         var rockerSwitch = $('#rockerSwitch');
-        var switchState = rockerSwitch.is(':checked'); // true if checked, false otherwise
+        var switchState = rockerSwitch.is(':checked');
 
-        // Create an object with the form data and the switch state
         var formData = $('#paramsForm').serializeArray();
         formData.push({ name: 'metadynamics', value: switchState });
 
-        // Submit the form data using AJAX POST
         $.post('/submit_params', formData, function() {
-            // After parameters are chosen, trigger the simulation script
             $.get('/run-script', function(data) {
                 if (data.error) {
                     $('#output').text("Error: " + data.error);
                 } else {
-                    const gridContainer = $('.grid-container');
-                    gridContainer.empty(); // Clear any existing grid items
+                    $('#output').text("Simulation ran successfully");
+                    $('#ns-per-day').text(parseFloat(data['ns_day']).toFixed(0) + " ns/day");
+                    $('#sim-time').text(parseFloat(data['sim_time']).toFixed(2) + " seconds");
 
-                    // Loop through the output list and create new grid items
-                    data.output.forEach(function(item) {
-                        const gridItem = $('<div>').addClass('grid-item').text(item);
-                        gridContainer.append(gridItem);
-                    });
+                    // Assign the correct URL paths from the server response
+                    console.log("FES Image URL:", data.fes_url);  // Debugging line
+                    console.log("Rads Time Image URL:", data.rads_time_url);  // Debugging line
 
-                    // Display the plot image if available
-                    if (data.image_url) {
-                        $('#resultImage').attr('src', data.image_url + '?' + new Date().getTime());
-                    }
+                    $('#fesImage').attr('src', data.fes_url + '?' + new Date().getTime());
+                    $('#radsTimeImage').attr('src', data.rads_time_url + '?' + new Date().getTime());
                 }
             });
         });
