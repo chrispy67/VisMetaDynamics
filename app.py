@@ -4,6 +4,10 @@ import threading
 import webbrowser
 import src.config as config
 import json
+import os
+
+
+# check for refresh setting
 
 app = Flask(__name__, template_folder='docs')
 
@@ -82,27 +86,54 @@ def run_script():
             check=True
         )
 
+    # Given this script uses common libraries, this block accounts for different default interpreters
+    # except ModuleNotFoundError:
+    #     result = subprocess.run(
+    #         ['python', 'src/run_walker.py'],
+    #         capture_output=True,
+    #         text=True,
+    #         check=True
+    #     )
+
         output_data = json.loads(result.stdout)
         
         response = {
             'ns_day': output_data.get('ns/day', 0),
             'sim_time': output_data.get('sim_time', 0),
-            # 'output': list(output_data.keys()), #in case there is anything else I want to access
 
             # links to files created by run_walker.py; where all the graphing functions are called.
+            # but these are NOT in output_data{}
             'rads_time_url': '/static/images/rads_time.png',
-            'fes_url': '/static/images/reweight_fes.png'
+            'fes_url': '/static/images/reweight_fes.png',
+            'underlying_fes_url': '/static/images/underlying_fes.png',
+            'metad_gif_url': '/static/images/MD_simulation.gif'
         }
-
-        return jsonify(response)
+        
+        return jsonify(response), os.remove('static/.progress.json') # Restart the progress bar each time the button is pressed 
 
     except subprocess.CalledProcessError as e:
             # Capture stderr for specific error details and print to Flask site
             error_msg = e.stderr or "Unknown error occurred in run_walker.py"
             print(f"Error in run_walker.py: {error_msg}")  # Logs to server console for debugging
             return jsonify({'error': f'Simulation failed: {error_msg}'})
+            
 
+# This is the function that will be called periodically in index.html 
+@app.route('/static/.progress.json')
+def get_progress():
+    file_path = os.path.join(app.root_path, 'static', '.progress.json')
+
+    if os.path.exists(file_path):
+        with open (file_path) as f:
+            data = json.load(f)
+        return jsonify(data)
+    return jsonify({"value": 0})
 
 if __name__ == '__main__':
+    try:
+        os.remove('static/.progress.json')
+    except FileNotFoundError:
+        pass
+
     threading.Timer(2, open_browser).start() #automatically open browser
     app.run(debug=True, use_reloader=False, threaded=True)
