@@ -34,7 +34,10 @@ All of the modules and functions used by `app.py` can be run independently of th
 
 First described by [Laio and Parrinello][1] in 2002, metadynamics has proven to be useful in applications such as [drug discovery][2], [materials science][3], [ligand bindings][4], and [much more][5]. Since then, numerous versions of metadynamics have been designed to address the shortcomings of classical metadynamics; parallel-bias metadynamics, well-tempered metadynamics, and bias-exchange metadynamics are all flavors of the original 2002 paper. Metadynamics and all related acronyms can be applied easily to modern MD engines via plugins or built-in functions, making this family of enhanced sampling techinques widely accessible. A thorough review of the rigorously correct implementations and limitations for specific use cases of MetaD are beyond the scope of this resource, but users are encouraged to consult [documentation](https://www.plumed.org/) and [practical applications](https://www.plumed-nest.org/) on their own. 
 
-Pictured below are stick representations of *cis* (left) and *trans* (right) configurations of alanine dipeptide. The dihedral angle Φ corresponding to the two metastable states are also defined.  
+
+In metadynamics, potential energy is added to a chosen collective variable (CV) periodically in the form of Gaussian kernels, or bias. This bias encourages the system to escape metastable states, allowing the system to  explore otherwise inaccessible conformations in the CV space. With carefully chosen CVs and parameters, rare events can be observed on timescales accessible by modern MD engines and calculate probability distributions of metastable states in the CV space. 
+
+Pictured below are stick representations of *cis* (left) and *trans* (right) configurations of alanine dipeptide. The dihedral angle Φ corresponding to the two metastable states are also defined.
 
 <p float="left">
     <img src="docs/global_min.png"width="45%%"/>
@@ -42,7 +45,7 @@ Pictured below are stick representations of *cis* (left) and *trans* (right) con
 </p>
 
 
-In metadynamics, potential energy is added to a chosen collective variable (CV) periodically in the form of Gaussian kernels, or bias. This bias encourages the system to escape metastable states, allowing the system to  explore otherwise inaccessible conformations in the CV space. With carefully chosen CVs and parameters, rare events can be observed on timescales accessible by modern MD engines. To ensure adequate sampling and simulation performance, several parameters must be chosen. The equation below shows the added potential as a function of time from classical metadynamics:
+ To ensure adequate sampling and simulation performance, several parameters must be chosen. The equation below shows the added potential as a function of time from classical metadynamics:
 
 $$
 V_S(t) = t_0 \sum_{t'=\tau_G} W_0 \exp \left( - \frac{(S_i - S_i(t'))^2}{2\sigma_i^2} \right)
@@ -58,8 +61,6 @@ $$
     <img src="docs/underlying_fes.png">
 </p>
 
-In reality, the reweighting technique chosen has an affect on the resulting free energy surface; differences in the reweighted free energy surfaces could change the chemical interpretation entirely.
-
 For this tutorial, the CV is periodic and the underlying potential energy is known; in practice, <b>this is rarely true</b>. If the CV space is aperiodic and not known, a system trapped in a broad, deep free energy basin may appear converged. This phenomenon can be visualized in VisMetaDynamics by starting a very short simulation at a local minima. 
 
 In summary, this tutorial aims to give users an opprotunity to develop an intuition for choosing MD simulation and metadynamics parameters. Users are encouraged to explore the extremes of the parameters available and build their own intuition for what these paramters do. In practice, however, metadynamics simulations and their interpretations are far more complex than what is presented here, so go read some papers!
@@ -70,7 +71,7 @@ The underlying potential of the integrator is a sine/cosine fit of a free energy
 
 The code used in this tutorial is object-oriented and meant to be modular in case someone wants to explore a new underlying potential or a different flavor of metadynamics. While providing the integrator a new potential to explore is made easy via classes and pickle objects, the metadynamics calculations in `walker.py` and the function applying a periodic boundary condition are more rigid. 
 
-It would be really cool to allow users to explore other flavors of metadynamics or enhanced sampling techniques. Applying the integrator and same model system to [Parallel-bias Metadynamics](https://doi.org/10.1021/acs.jctc.5b00846) or [umbrella sampling](doi:10.1016/0021-9991(77)90121-8) on a separate webpage might be done in future releases. 
+It would be really cool to allow users to explore other flavors of metadynamics or enhanced sampling techniques. Applying the integrator and same model system to [Parallel-bias Metadynamics](https://doi.org/10.1021/acs.jctc.5b00846) or [umbrella sampling](https://doi:10.1016/0021-9991(77)90121-8) on a separate webpage might be done in future releases. 
 
 # References
 [1]: https://doi.org/10.1073/pnas.202427399
