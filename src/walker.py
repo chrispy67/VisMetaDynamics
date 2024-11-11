@@ -5,6 +5,7 @@ import pickle
 import config as config
 import time
 import matplotlib.pyplot as plt
+import json
 
 # Parse arguments and python logger options
 logger = logging.getLogger(__name__)
@@ -22,7 +23,8 @@ log_level = getattr(logging, args.log.upper(), None)
 setup_logger(log_level)
 
 # Define parameters that aren't set by user
-mratio = 10 #what to do here? Maybe this is something I enforce a min/max for as a function of steps?
+mratio = 10 # sets log ratio for site progress bar AND logger
+
 dt = 0.02  # Time step is FIXED now
 t = 0  # Time
 m = 1  # Mass
@@ -37,6 +39,11 @@ def integrator_performance(t_start, t_end):
     }
 
     return performance_summary
+
+# overwrites progress bar value as .json as function of mratio
+def update_progress(value):
+    with open('static/.progress.json', 'w') as f:
+        json.dump({"value": value}, f)
 
 # Primary MD Engine
 # All functions that are necessary to these calculations are INSIDE THIS FUNCTION
@@ -65,10 +72,20 @@ def walker(steps, x0, T, metad, w, delta, hfreq):
             Fbias = 0
         return V, Fpot + Fbias
 
-    # Lean periodic boundary condition function for improving performance
     def pbc(r, bc=np.pi):
-        # This potential is on the domain [π, π]. Any other potential is going to need another PBC functions
-        return (((r + bc) % (2 * bc)) - bc) 
+        # This potential is on the domain [π, π]. Any other potential is going to need another PBC function!
+        if r > bc:
+            return r - 2 * bc
+
+        elif r < -bc:
+            return r + 2 * bc
+
+        else:
+        # If r is within [-π, π], no adjustment is needed
+            return r
+
+        # Deprecated 11/11 as it is INCORRECT
+        # return (((r + bc) % (2 * bc)) - bc) 
 
     # Metadynamics functions and equations
     gamma = 5.0 #
@@ -93,6 +110,7 @@ def walker(steps, x0, T, metad, w, delta, hfreq):
     E[0] = 0.5 * p**2 + v
 
     for i in range(steps):
+        
         # Check if we should deposit a hill on the FES
         if metad:
             s = np.append(s, q[i]) if i % hfreq == 0 else s # append a sigma as fxn of hfreq
@@ -133,10 +151,10 @@ def walker(steps, x0, T, metad, w, delta, hfreq):
                         mean_s = np.mean(bias_k)
                         sigma_s = np.std(bias_k)
 
-                        if rad_k + (mean_s + 5 * sigma_s) > np.pi: # the 2d gaussian stretches arcross π
+                        if rad_k + (mean_s + 4 * sigma_s) > np.pi: # the 2d gaussian stretches arcross π
                             bias[k - len(xlong)] += np.sum(bias_k)
 
-                        if rad_k - (mean_s - 5 * sigma_s) < -np.pi: # the 2d gaussian stretches arcross -π
+                        if rad_k - (mean_s - 4 * sigma_s) < -np.pi: # the 2d gaussian stretches arcross -π
                             bias[k + len(xlong)] += np.sum(bias_k)
 
                         else:
@@ -153,9 +171,17 @@ def walker(steps, x0, T, metad, w, delta, hfreq):
 
         else:
             V[i] = v # Store unbiased potential 
-            bias = 0
 
         if i % mratio == 0: 
+
+            # mratio is also tied to progress bar
+            progress_value = int((i / steps) * 100)
+            try:
+                update_progress(progress_value)
+            
+            except FileNotFoundError:
+                pass
+
             logger.info(f"""
                 step: {i}
                 energy: {V[i]}
@@ -211,12 +237,12 @@ if __name__ == '__main__':
     reweight(summary_dict['bias'])
     rads_time(summary_dict['q'], sim_time)
     animate_md(summary_dict['V'], summary_dict['bias'], summary_dict['q'])
-    
-    plt.show()
 
     print(f" Number of steps: {config.steps}")
     print(f" Initial x coord: {config.x0:.2f} radians")
     print(f" Temperature: {config.temp:.2f}")
     print(f" Timestep: {dt:.2e}ns")
     print(f" Simulation time: {tplus - t0:2f} seconds")
+
+    plt.show()
 

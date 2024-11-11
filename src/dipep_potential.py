@@ -77,7 +77,7 @@ if __name__ == '__main__':
     x = np.arange(-np.pi, np.pi, 0.01)
 # Plot original data and the best sine-cosine fitting
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.set(xlim=[-np.pi, np.pi], ylim=[-20, 65])
+    ax.set(xlim=[-np.pi, np.pi], ylim=[-100, 100])
 
     plt.title('Alanine Dipeptide Free Energy Surface of Φ Dihedral Angle', fontsize=16)
     plt.ylabel('Energy (kcal)', fontsize=15)
@@ -91,6 +91,7 @@ if __name__ == '__main__':
 
     plt.scatter(phi, energy, label='Metadynamics FES',
     marker='s', s=16, color='gray', alpha=0.8)
+
     plt.plot(x, v_x_instance.potential(x), label='Best sine-cosine fit', color='dodgerblue')
     plt.plot(x, v_x_instance.force(x), label='F(x)', color='red')
     

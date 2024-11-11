@@ -17,7 +17,6 @@ except FileNotFoundError:
         V_x_class = pickle.load(f)
 
 
-
 # - All of these functions should take in arrays and spit out a graph.
 # - Function of time or function of steps??? time is certainly more interpretable
 
@@ -61,11 +60,11 @@ def hills_time(hills, time, save_path = None):
 
 def rads_time(rad, time, save_path = None):
     fig, ax = plt.subplots()
-    scat = ax.scatter(time, rad, s=2)
+    scat = ax.scatter(time, rad, s=2, color='#6b4f9e')
 
-    ax.set(xlabel='Time (ns)',
-        ylabel='Dihedral angle (rad)', 
-        title='Dihedral angle (φ) of Alanine Dipeptide')
+    ax.set_xlabel('Time (ns)', fontweight='bold')
+    ax.set_ylabel('Dihedral angle (radians)', fontweight='bold')
+    ax.set_title('Dihedral Angle (φ) of Alanine Dipeptide', fontweight='bold')
 
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
@@ -77,9 +76,10 @@ def energy_time(energy, time, save_path = None):
     fig, ax = plt.subplots()
     scat = ax.scatter(time, energy)
 
-    ax.set(xlabel='Time (ns)',
-        ylabel='Energy (kcal/mol)', 
-        title='Potential Energy of Dihedral Angle')
+    ax.set_xlabel('Time (ns)', fontweight='bold')
+    ax.set_ylabel('Energy (kcal/mol)', fontweight='bold')
+    ax.set_title('Potential Energy of φ Dihedral Angle on Alanine Dipeptide')
+
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
         plt.close()
@@ -91,11 +91,12 @@ def fes(save_path = None):
     fig, ax = plt.subplots()
     x = np.linspace(-np.pi, np.pi, 600)
     V = V_x_class.potential(x) # this is assuming np.poly1D function notation
-    plot = ax.plot(x, V)
+    plot = ax.plot(x, V, color='#6b4f9e')
 
-    ax.set(xlim=[-np.pi, np.pi], ylim=[-25, 100], 
-        xlabel = 'phi (radians)',
-        ylabel='Change in Free Energy')
+    ax.set_xlabel('φ Dihedral Angle (radians)', fontweight='bold')
+    ax.set_ylabel('Δ Free Energy (kcal)', fontweight='bold')
+    ax.set_title('Underlying Potential Energy Defined by Integrator', fontweight='bold')
+    ax.set(xlim=[-np.pi, np.pi], ylim=[-25, 100])
     
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
@@ -109,11 +110,16 @@ def reweight(bias, save_path = None):
 
     bias_array = np.array(bias)
 
+    ax.set_xlabel('φ Dihedral Angle (radians)', fontweight='bold')
+    ax.set_ylabel('Δ Free Energy (kcal)', fontweight='bold')
+    ax.set_title('Free Energy of Dihedral Angle (φ) of Alanine Dipeptide', fontweight='bold')
+
+
     #F(s, t) ~= -V(s, t) + C
     C = (bias - np.min(bias)) #normalization constant of integration? Need help here
     # print(C)
     # plt.plot(x, -bias - C, label='Correct for C')
-    plot = plt.plot(x, -bias_array, label='-bias')
+    plot = plt.plot(x, -bias_array, label='-bias', color='#6b4f9e')
 
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
@@ -122,24 +128,21 @@ def reweight(bias, save_path = None):
     return (fig, plot)
 
 
-# if steps < frames: sim is cut short
-# if steps = frames: sim is way too long to watch or save
-# if steps > frames: we have something we can work with. but how to make this ratio flexible?
-
-def animate_md(V, hills, rads):
+def animate_md(V, hills, rads, save_path = None):
     # copied from fes()
     fig, ax = plt.subplots()
-    frames = len(rads) 
+
+
+    frames = range(0, len(rads), 300)
     
     # ensures equal length arrays
     x = np.arange(-np.pi, np.pi, (2*np.pi / len(hills)))
 
     #pre plots
-    ax.plot(x, V_x_class.potential(x), alpha=0.6, label='free energy surface')
-    # ax.plot(x, hills, linewidth=2, label='Bias')
+    ax.plot(x, V_x_class.potential(x), alpha=0.6, label='free energy surface', color='black')
     
     # need to change the size (volume of the Gaussian) for each deposition
-    scatter = ax.scatter(rads, V, s=3, label='simulation steps') #to be updated
+    scatter = ax.scatter(rads, V, s=3, label='simulation steps', color='#6b4f9e') #to be updated
 
     # Goal here is to make an animation that is:
         # NOT TOO LARGE OF A FILE (cap frames?)
@@ -152,16 +155,20 @@ def animate_md(V, hills, rads):
     func=update, 
     frames=frames, # must be integer | WILL TRUNCATE SIMULATION
     fargs=(rads, V, scatter, 'scatter'),
-    interval=1, 
+    interval=30, 
     blit=True)
 
-    ax.set(xlim=[-np.pi, np.pi], ylim=[-25, 100], 
-        xlabel = 'phi (radians)',
-        ylabel='Change in Free Energy',
-        title='Metadynamics Simulation of Alanine Dipeptide Dihedral Angle')
+    ax.set_xlabel('φ Dihedral Angle (radians)', fontweight='bold')
+    ax.set_ylabel('Δ Free Energy (kcal)', fontweight='bold')
+    ax.set_title('Metadynamics Simulation of Alanine Dipeptide Dihedral Angle', fontweight='bold')
 
     # This is the rate limiting step here. For minimum steps and mratio of 10, just one of these GIFs is absurdly large. 
     # ani.save('static/MD_simulation.gif', writer='ffmpeg', fps=30)
+
+    if save_path:
+        writervideo = animation.FFMpegWriter(fps=60)
+        ani.save(save_path, writer=writervideo)
+        plt.close()
     plt.show() #must be inside the function, NOT walker.py to pass animation
 
     return ani  

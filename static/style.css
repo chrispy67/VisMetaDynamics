@@ -20,7 +20,7 @@ body {
 
 header {
     position: relative;
-    background-color: #333;
+    background-color: #6b4f93;
     padding: 10px 0;
     text-align: center;
 }
@@ -69,10 +69,10 @@ nav ul li a {
 }
 
 .text-box {
-    background-color: #f9f9f9;
+    background-color: white;
     padding: 15px;
     margin: 20px 0;
-    border: 1px solid #ddd;
+    border: 1px solid white;
     border-radius: 5px;
 }
 
@@ -86,11 +86,31 @@ footer {
     bottom: 0;
 }
 
+/* Defining progress bar*/
+.progress-bar-container {
+    width: 80%;
+    background-color: #f3f3f3;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.progress-bar {
+    height: 30px;
+    width: 0%;
+    background-color: #6b4f9e;
+    border-radius: 10px;
+    text-align: center;
+    color: white;
+    font-weight: bold;
+    transition: width 0.5s ease;
+    
+}
+
 .grid-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr); /* Two columns */
     grid-template-rows: repeat(2, auto); /* Two rows */
-    gap: 20px;
+    gap: 5px;
     max-width: 100%;
     justify-items: center;
 }
@@ -99,7 +119,7 @@ footer {
     width: 100%;
     height: auto;
     object-fit: cover; /* Maintain image aspect ratio */
-    max-width: 500px; /* Set a max-width to control image size */
+    max-width: 800px; /* Set a max-width to control image size */
 }
 
 .slider-container {
