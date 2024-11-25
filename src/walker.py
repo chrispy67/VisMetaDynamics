@@ -244,5 +244,4 @@ if __name__ == '__main__':
     print(f" Timestep: {dt:.2e}ns")
     print(f" Simulation time: {tplus - t0:2f} seconds")
 
-    plt.show()
-
+    # plt.show()

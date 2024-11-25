@@ -5,6 +5,8 @@ import webbrowser
 import src.config as config
 import json
 import os
+# from waitress import serve
+
 
 
 # check for refresh setting
@@ -86,6 +88,7 @@ def run_script():
             check=True
         )
 
+
     # Given this script uses common libraries, this block accounts for different default interpreters
     # except ModuleNotFoundError:
     #     result = subprocess.run(
@@ -108,15 +111,27 @@ def run_script():
             'underlying_fes_url': '/static/images/underlying_fes.png',
             'metad_gif_url': '/static/images/MD_simulation.gif'
         }
-        
-        return jsonify(response), os.remove('static/.progress.json') # Restart the progress bar each time the button is pressed 
+
+        # Restart the progress bar each time the button is pressed 
+        if os.path.exists('static/.progress.json'):
+            os.remove('static/.progress.json')
+        return jsonify(response) 
 
     except subprocess.CalledProcessError as e:
             # Capture stderr for specific error details and print to Flask site
             error_msg = e.stderr or "Unknown error occurred in run_walker.py"
             print(f"Error in run_walker.py: {error_msg}")  # Logs to server console for debugging
             return jsonify({'error': f'Simulation failed: {error_msg}'})
-            
+
+    except json.JSONDecodeError as e:
+        # Handle invalid JSON
+        print(f"Invalid JSON output from run_walker.py: {e}")
+        return jsonify({'error': 'Invalid JSON output from run_walker.py'})
+
+    except Exception as e:
+        # Catch any unexpected errors
+        print(f"Unexpected error: {e}")
+        return jsonify({'error': f'Unexpected error: {e}'})
 
 # This is the function that will be called periodically in index.html 
 @app.route('/static/.progress.json')
@@ -135,5 +150,8 @@ if __name__ == '__main__':
     except FileNotFoundError:
         pass
 
+
     threading.Timer(2, open_browser).start() #automatically open browser
-    app.run(debug=True, use_reloader=False, threaded=True)
+    app.run(debug=False, use_reloader=False)
+
+    # serve(app, host="127.0.0.1", port=5000)

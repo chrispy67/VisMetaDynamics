@@ -21,8 +21,10 @@ if __name__ == '__main__':
     reweight(summary_dict['bias'], save_path='static/images/reweight_fes.png')
     fes(save_path='static/images/underlying_fes.png')
     animate_md(summary_dict['V'], summary_dict['bias'], summary_dict['q'], save_path='static/images/MD_simulation.gif')
-
+    plt.show()
+    
 # Primary output to flask page
     print(json.dumps(summary_dict))
+    # dict_keys(['bias', 'q', 'V', 'E', 'sim_time', 'ns/day'])
 
-    plt.show()
+    # plt.show()
