@@ -5,11 +5,6 @@ import webbrowser
 import src.config as config
 import json
 import os
-# from waitress import serve
-
-
-
-# check for refresh setting
 
 app = Flask(__name__, template_folder='docs')
 
@@ -27,7 +22,7 @@ def update_config(steps, temp, x0, #mratio,
             # f.write(f"mratio = {mratio}\n")
 
             # MetaD parameters
-            f.write(f"metad = {metad}\n") # overriding this flag for now 
+            f.write(f"metad = {metad}\n") 
             f.write(f"w = {w}\n")
             f.write(f"delta = {delta}\n")
             f.write(f"hfreq = {hfreq}\n")
@@ -43,7 +38,7 @@ def submit_params():
     # mratio = request.form.get('mratio')
 
     metad = None
-    # ON/OFF bool needs to be translated
+    # ON/OFF bool needs to be translated because case sensitive??
     metad_from_switch = request.form.get('metadynamics')
 
     if metad_from_switch == 'true':
@@ -61,7 +56,7 @@ def submit_params():
         metad, w, delta, hfreq)
     
     # no content on success
-    return '', 204 # do
+    return '', 204 
 
 # Slightly different from submit_params
 @app.route('/process_switch', methods=['POST'])
@@ -88,16 +83,6 @@ def run_script():
             check=True
         )
 
-
-    # Given this script uses common libraries, this block accounts for different default interpreters
-    # except ModuleNotFoundError:
-    #     result = subprocess.run(
-    #         ['python', 'src/run_walker.py'],
-    #         capture_output=True,
-    #         text=True,
-    #         check=True
-    #     )
-
         output_data = json.loads(result.stdout)
         
         response = {
@@ -118,10 +103,10 @@ def run_script():
         return jsonify(response) 
 
     except subprocess.CalledProcessError as e:
-            # Capture stderr for specific error details and print to Flask site
-            error_msg = e.stderr or "Unknown error occurred in run_walker.py"
-            print(f"Error in run_walker.py: {error_msg}")  # Logs to server console for debugging
-            return jsonify({'error': f'Simulation failed: {error_msg}'})
+        # Capture stderr for specific error details and print to Flask site
+        error_msg = e.stderr or "Unknown error occurred in run_walker.py"
+        print(f"Error in run_walker.py: {error_msg}")  # Logs to server console for debugging
+        return jsonify({'error': f'Simulation failed: {error_msg}'})
 
     except json.JSONDecodeError as e:
         # Handle invalid JSON
@@ -154,4 +139,3 @@ if __name__ == '__main__':
     threading.Timer(2, open_browser).start() #automatically open browser
     app.run(debug=False, use_reloader=False)
 
-    # serve(app, host="127.0.0.1", port=5000)

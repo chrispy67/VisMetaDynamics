@@ -15,7 +15,12 @@ body {
 }
 
 .summary-container {
-    flex: 1 1 100%;
+    flex: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    
 }
 
 header {
@@ -165,7 +170,6 @@ section {
     display: none;
 }
 
-/* The slider */
 .slider {
     position: absolute;
     cursor: pointer;
