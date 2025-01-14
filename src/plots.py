@@ -8,6 +8,7 @@ import time
 from matplotlib.ticker import FixedLocator, FixedFormatter
 
 
+
 try:
     with open("V_x_functions.pkl", "rb") as f:
         import V_x_functions
@@ -90,12 +91,14 @@ def fes(save_path = None):
     fig, ax = plt.subplots()
     x = np.linspace(-np.pi, np.pi, 600)
     V = V_x_class.potential(x) # this is assuming np.poly1D function notation
-    plot = ax.plot(x, V, color='#6b4f9e')
+
+    #min-to-zero correction done here, given previous issues with addressing it in the underlying FES
+    plot = ax.plot(x, V - np.min(V), color='#6b4f9e')
 
     ax.set_xlabel('φ Dihedral Angle (radians)', fontweight='bold')
     ax.set_ylabel('Δ Free Energy (kcal)', fontweight='bold')
     ax.set_title('Underlying Potential Energy Defined by Integrator', fontweight='bold')
-    ax.set(xlim=[-np.pi, np.pi], ylim=[-25, 100])
+    ax.set(xlim=[-np.pi, np.pi], ylim=[0, 80])
     
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
@@ -103,19 +106,21 @@ def fes(save_path = None):
     return (fig, plot)
 
 
-def reweight(bias, save_path = None):
+def neg_bias(bias, rad, save_path = None):
+
+    ###---PRE-PLOT INFORMATION---###
     fig, ax = plt.subplots()
     x = np.linspace(-np.pi, np.pi, len(bias))
 
-    bias_array = np.array(bias) - np.max(bias)
+    bias -= np.min(bias)
 
     ax.set_xlabel('φ Dihedral Angle (radians)', fontweight='bold')
-    ax.set_ylabel('Δ Free Energy (generic units)', fontweight='bold')
-    ax.set_title('Free Energy of Dihedral Angle (φ) of Alanine Dipeptide', fontweight='bold')
-    
+    ax.set_ylabel('Negative Bias (generic units)', fontweight='bold')
+    ax.set_title('Approximation of Free Energy Surface', fontweight='bold')
+    ax.set(xlim=[-np.pi, np.pi])
 
-    #F(s, t) ~= -V(s, t) + C
-    plot = plt.plot(x, -bias_array, label='-bias', color='#6b4f9e')
+    # This is the most straightforward way to visualize the free energy surface BEFORE reweighting
+    plot = plt.plot(x, -bias, label='-bias', color='#6b4f9e')
 
     # Generic energy units here for y-axis
     yticks = ax.get_yticks()  # Get the current tick positions
@@ -129,22 +134,21 @@ def reweight(bias, save_path = None):
     if save_path:
         fig.savefig(save_path, format='png', dpi=300)
         plt.close()
-    return (fig, plot)
+    return (fig, ax)
 
 
 def animate_md(V, hills, rads, save_path = None):
     # copied from fes()
     fig, ax = plt.subplots()
-    t_0 = time.time()
 
-
-    frames = range(0, len(rads), 300)
+    frames = range(0, len(rads), 800)
     
     # ensures equal length arrays
     x = np.arange(-np.pi, np.pi, (2*np.pi / len(hills)))
 
     #pre plots
     ax.plot(x, V_x_class.potential(x), alpha=0.6, label='free energy surface', color='black')
+    ax.set(xlim=[-np.pi, np.pi])
     
     # need to change the size (volume of the Gaussian) for each deposition
     scatter = ax.scatter(rads, V, s=2, label='simulation steps', color='#6b4f9e') #to be updated
@@ -175,5 +179,43 @@ def animate_md(V, hills, rads, save_path = None):
 
     return ani  
 
+### WIP
+def histogram(s, bias):
+    
+    ###-- Thermodynamic Quantities --###
+    kbT = 1.38e-23 * config.temp  # Boltzmann constant in J/K
+    rads = np.asarray(s)
+
+    ###-- Bin the Angles into bias array bins --###
+    bins = len(bias) # to avoid any issues with different #s of bins
+    bin_edges = np.linspace(rads.min(), rads.max(), bins + 1) 
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+    counts, _ = np.histogram(s, bins=bin_edges, density=True)
+    bin_indices = np.digitize(s, bin_edges) -1 
+
+    # Map bias to the binned time series
+    binned_bias = np.zeros(bins)
+    
+    # Fit the bias inside a histogram of the same shape of the binned probabilities
+    for i in range(bins):
+        # Check which angles fall into this bin and reweight using the fixed bias array
+        mask = (bin_indices == i)
+        if np.any(mask):  # If there are angles in this bin
+            binned_bias[i] = bias[i]  # Assign the corresponding bias value
+        else:
+            binned_bias[i] = 0.0  # Default to zero if no data points fall into this bin
 
 
+    ###-- REWEIGHTING --###
+    weights = np.exp(-binned_bias / kbT)
+    weighted_counts = counts * weights
+
+    P_unbiased = weighted_counts / np.sum(weighted_counts)
+    P_unbiased[P_unbiased == 0] = 1e-20  # Avoid log(0)
+    FES = -kbT * np.log(P_unbiased)
+    
+    plt.figure()
+    plt.plot(bin_centers, FES)
+
+    plt.show()    
