@@ -1,5 +1,5 @@
 from walker import walker
-from plots import rads_time, reweight, animate_md, fes
+from plots import rads_time, neg_bias, animate_md, fes, histogram
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
@@ -17,10 +17,13 @@ if __name__ == '__main__':
     
     sim_time = np.linspace(0, config.steps+1, config.steps+1) * 0.02 #ns
 
+    # These plots are crucial to the output on the Flask page
     rads_time(summary_dict['q'], sim_time, save_path='static/images/rads_time.png')
-    reweight(summary_dict['bias'], save_path='static/images/reweight_fes.png')
+    neg_bias(summary_dict['bias'], summary_dict['q'], save_path='static/images/reweight_fes.png')
     fes(save_path='static/images/underlying_fes.png')
     animate_md(summary_dict['V'], summary_dict['bias'], summary_dict['q'], save_path='static/images/MD_simulation.gif')
+
+    # histogram(summary_dict['q'], summary_dict['bias']) # FOR DEBUGGING PURPOSES!!
     plt.show()
     
 # Primary output to flask page
