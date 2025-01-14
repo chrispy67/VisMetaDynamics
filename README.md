@@ -19,12 +19,18 @@ Using this tutorial is as simple as cloning the Github repository, navigating to
 
 A command line interface is also available and simple to use. Each parameter can be addressed the same way, albeit with more freedom to pick extreme parameters that may cause issues with the integrator. The parameters are adjusted with optional command line arguments and unless told otherwise, the same default parameters from the Flask site  will be used.
 
-### CLI example usage
+## CLI example usage
 Achieve better sampling with a longer metadynamics simulation and more even sampling:
-```python src/walker.py --steps 100000 --metad --w 1.0 --hfreq 100```
+
+```
+python src/walker.py --steps 100000 --metad --w 1.0 --hfreq 100
+```
 
 Or just watch the ball go back and forth with an unbiased simulation:
-```python src/walker.py --steps 10000```
+
+```
+python src/walker.py --steps 10000
+```
 
 ## Troubleshooting
 All of the modules and functions used by `app.py` can be run independently of the Flask application for troubleshooting purposes. If there are issues loading the Flask webpage, try `python walker.py` or `python run_walker.py`. These should display all of the figures visible on the webpage, and `run_walker.py` will print the output that is passed to `app.py` in JSON format. If both of these scripts succeed, there is likely a network or browser issue with `app.py`.
@@ -63,7 +69,7 @@ $$
 V_S(t) = t_0 \sum_{t'=\tau_G} W_0 \exp \left( - \frac{(S_i - S_i(t'))^2}{2\sigma_i^2} \right)
 $$
 
-Given appropriate metadynamics parameters and simulation time, enough bias will be added to the system where the biased CV will have enough potential energy to freely diffuse through the CV space. This is a sign that the CV has enough energy to overcome local and global maxima and removing the bias, otherwise known as reweighting, will correspond to the underlying free energy of the CV. This is known colloquially as <b>convergence</b>.  There are several [reweighting techniques](6) that can be used to produce a free energy surface for real simulations, but in this 1-dimensional case the free energy surface can be approximated as:
+Given appropriate metadynamics parameters and simulation time, enough bias will be added to the system where the biased CV will have enough potential energy to freely diffuse through the CV space. This is a sign that the CV has enough energy to overcome local and global maxima and removing the bias (reweighting) will correspond to the underlying free energy of the CV. This is known colloquially as <b>convergence</b>.  There are several [reweighting techniques](6) that can be used to produce a free energy surface for real simulations, but in this 1-dimensional case the free energy surface can be approximated as:
 
 $$
 F_{b}(x, t) = -V(x, t)
@@ -86,14 +92,17 @@ The code used in this tutorial is object-oriented and meant to be modular in cas
 It would be really cool to allow users to explore other flavors of metadynamics or enhanced sampling techniques. Applying the integrator and same model system to [Parallel-bias Metadynamics](https://doi.org/10.1021/acs.jctc.5b00846) or [umbrella sampling](https://doi:10.1016/0021-9991(77)90121-8) on a separate webpage might be done in future releases. 
 
 # References
-https://doi.org/10.1073/pnas.202427399
-https://pubs.acs.org/doi/10.1021/acs.jmedchem.6b01642
-https://doi.org/10.1038/nmat1696
-https://pubs.acs.org/doi/full/10.1021/acs.jpcb.3c07972
-https://doi.org/10.1088/0034-4885/71/12/126601
-https://doi.org/10.1021/acs.jctc.9b00867
+[Escaping free-energy minima, Laio and Parrinello](https://doi.org/10.1073/pnas.202427399)
 
+[Metadynaimcs for Perspective Drug Desig: Computationally Driven Synthesis of New Protein-Protein Interaction Inhibitors Targeting the EphA2 Receptor](https://pubs.acs.org/doi/10.1021/acs.jmedchem.6b01642)
 
+[Crystal Structrue Transformations in SiO2 from Classical and ab initio Metadynamics](https://doi.org/10.1038/nmat1696)
+
+[Exploring Product Release from yeast Cytosine Deaminase with Metadynamics](https://pubs.acs.org/doi/full/10.1021/acs.jpcb.3c07972)
+
+[Metadynamics: A Method to SImulate Rare Events and Reconstruct the Free Energy in Biophysics, Chemistry, and Material Science](https://doi.org/10.1088/0034-4885/71/12/126601)
+
+[Data Reweighting in Metadynamics Simulations](https://doi.org/10.1021/acs.jctc.9b00867)
 
 [1]: https://doi.org/10.1073/pnas.202427399
 [2]: https://pubs.acs.org/doi/10.1021/acs.jmedchem.6b01642
