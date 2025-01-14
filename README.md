@@ -15,13 +15,25 @@ Users should try several combinations of parameters and explore the effects thes
 VisMetaDynamics is designed for someone already familiar with MD simulations. This tool is meant to augment [existing tutorials](http://www.plumed-tutorials.org/browse.html) and resources by offering a visual, qualitative understanding of the effect of hyperparameters on the resulting free energy surface and performance. Users are encouraged to play with these sliders and observe changes in simulation performance, accuracy of the free energy surface, and overall simulation behavior as a function of these parameters. 
 
 # Installation
-Using this tutorial is as simple as cloning the Github repository and running `python app.py`. This will automatically open up a Flask webpage on your default browser. The Python scripts are run locally and can be computationally intensive depending on the parameters chosen and hardware. The ranges of the values on the sliders are chosen to allow the user to explore many combinations of parameters, but may result in <b>computationally intractable calculations</b>.
+Using this tutorial is as simple as cloning the Github repository, navigating to the repository, and running `python app.py`. This will automatically open up a Flask webpage on your default browser. The Python scripts are run locally and can be computationally intensive depending on the parameters chosen and hardware. The ranges of the values on the sliders are chosen to allow the user to explore many combinations of parameters, but may result in <b>computationally intractable calculations</b>.
+
+A command line interface is also available and simple to use. Each parameter can be addressed the same way, albeit with more freedom to pick extreme parameters that may cause issues with the integrator. The parameters are adjusted with optional command line arguments and unless told otherwise, the same default parameters from the Flask site  will be used.
+
+### CLI example usage
+Achieve better sampling with a longer metadynamics simulation and more even sampling:
+```python src/walker.py --steps 100000 --metad --w 1.0 --hfreq 100```
+
+Or just watch the ball go back and forth with an unbiased simulation:
+```python src/walker.py --steps 10000```
 
 ## Troubleshooting
 All of the modules and functions used by `app.py` can be run independently of the Flask application for troubleshooting purposes. If there are issues loading the Flask webpage, try `python walker.py` or `python run_walker.py`. These should display all of the figures visible on the webpage, and `run_walker.py` will print the output that is passed to `app.py` in JSON format. If both of these scripts succeed, there is likely a network or browser issue with `app.py`.
 
 > [!NOTE]
->  This tutorial uses common libraries and has few dependencies, such as Scipy, Numpy, pickle, and Flask. `environment.yml` is included if needed. 
+>  This tutorial uses common libraries and has few dependencies, such as Scipy, Numpy, pickle, ffmpeg, and Flask. `environment.yml` is included if needed. 
+
+> [!NOTE]
+> If you are having Flask, internet, or browser issues, try to use the command line interface! Directions can be be found above. i
 
 
 > [!CAUTION]
@@ -74,6 +86,15 @@ The code used in this tutorial is object-oriented and meant to be modular in cas
 It would be really cool to allow users to explore other flavors of metadynamics or enhanced sampling techniques. Applying the integrator and same model system to [Parallel-bias Metadynamics](https://doi.org/10.1021/acs.jctc.5b00846) or [umbrella sampling](https://doi:10.1016/0021-9991(77)90121-8) on a separate webpage might be done in future releases. 
 
 # References
+https://doi.org/10.1073/pnas.202427399
+https://pubs.acs.org/doi/10.1021/acs.jmedchem.6b01642
+https://doi.org/10.1038/nmat1696
+https://pubs.acs.org/doi/full/10.1021/acs.jpcb.3c07972
+https://doi.org/10.1088/0034-4885/71/12/126601
+https://doi.org/10.1021/acs.jctc.9b00867
+
+
+
 [1]: https://doi.org/10.1073/pnas.202427399
 [2]: https://pubs.acs.org/doi/10.1021/acs.jmedchem.6b01642
 [3]: https://doi.org/10.1038/nmat1696
