@@ -79,7 +79,7 @@ def walker(steps, x0, T, metad, w, delta, hfreq):
 
     
     # Empty arrays to store information and underlying potential
-    xlong = np.linspace(-np.pi + config.delta, np.pi - config.delta, 100) #len of bias array is directly related to this. 
+    xlong = np.linspace(-np.pi, np.pi, 100) #len of bias array is directly related to this. 
     q = np.zeros(steps + 1) # Making room for final radian
     E = np.zeros(steps + 1) # Making room for final energy
     V = np.zeros(steps + 1) # Making room for final potential
@@ -194,7 +194,7 @@ def walker(steps, x0, T, metad, w, delta, hfreq):
 
 if __name__ == '__main__':
     import time
-    from plots import animate_md, fes, neg_bias, rads_time
+    from plots import animate_md, fes, neg_bias, rads_time, histogram
     # If you want to pickle a class, the same script MUST know the format of the class
     from V_x_functions import V_x   
 
@@ -228,23 +228,23 @@ if __name__ == '__main__':
         help = 'Starting point of the dihedral angle')
     
     parser.add_argument('-metad', '--metad',
-    action='store_true',
-    help = 'turn metadynamics on/off')
+        action='store_true',
+        help = 'turn metadynamics on/off')
 
     parser.add_argument('-w', '--w',
-    type = str,
-    default = '1.2',
-    help = 'Height of deposited gaussians in units of energy')
+        type = str,
+        default = '1.2',
+        help = 'Height of deposited gaussians in units of energy')
 
     parser.add_argument('-delta', '--delta',
-    type = str, 
-    default = '0.01',
-    help = 'The width of the depoostied gaussians in units of the collective variable (radians)')
+        type = str, 
+        default = '0.01',
+        help = 'The width of the depoostied gaussians in units of the collective variable (radians)')
 
     parser.add_argument('-hfreq', '--hfreq', '--frequency', 
-    type = str,
-    default = '50',
-    help = 'Rate of hill deposition in terms of simulation steps.')
+        type = str,
+        default = '50',
+        help = 'Rate of hill deposition in terms of simulation steps.')
 
     args = parser.parse_args()
 
@@ -306,7 +306,7 @@ if __name__ == '__main__':
     tplus = time.time()
     
     # Need to define generic domain because of new class notation
-    x = np.linspace(-np.pi + config.delta, np.pi - config.delta, 100)
+    x = np.linspace(-np.pi, np.pi, 100)
     sim_time = np.linspace(0, config.steps+1, config.steps+1) * dt #ns
     
     # Generates plots that populate Flask page and appear in matplitlib window (CLI)
@@ -314,6 +314,7 @@ if __name__ == '__main__':
     neg_bias(summary_dict['bias'], summary_dict['q'])
     rads_time(summary_dict['q'], sim_time)
     animate_md(summary_dict['V'], summary_dict['bias'], summary_dict['q'])
+
 
     # Basic printout for performance
     print(f" Simulation time: {summary_dict['sim_time']} seconds")

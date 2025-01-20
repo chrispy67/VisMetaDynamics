@@ -58,7 +58,7 @@
                 <li>How do the metadynamics parameters affect simulation performance? </li>
                 <li>Am I wasting time adding really small Gaussians?</li>
                 <li>How does the starting point of the simulation affect sampling?</li>
-                <li>What does good sampling or "convergence" look like?</li>
+                <li>What does good sampling look like?</li>
                 <li>If the underlying potential is NOT known, how could these results be <b>misinterpreted</b>?</li>
                 <li><b>How can I get an adequate estimate of the free energy surface with the lowest computational cost?</b></li>
             </ul>
@@ -83,7 +83,7 @@
             
                 <div class="slider-container">
                     <label class="slider-label" for="stepRange">Steps:</label>
-                    <input type="range" name="steps" id="stepRange" min="1000" max="200000" value="1000" step="10" oninput="updateValue('stepValue', this.value, 0)">
+                    <input type="range" name="steps" id="stepRange" min="1000" max="250000" value="1000" step="10" oninput="updateValue('stepValue', this.value, 0)">
                     <input type="text" id="stepValue" value="1000" readonly>
                     <p class="description">Length of the simulation in discrete molecular dynamics steps. Increasing steps creates longer simulations and improves sampling.</p>
 
@@ -153,13 +153,10 @@
             </div>
         </div>
 
-        <div class="flex-container">
-            <div class="summary-container">
-                <h2>Simulation Summary:</h2>
-                <div id="output"></div>
-                <div id="ns-per-day"></div>
-                <div id="sim-time"></div>
-            </div>
+        <div class="summary-container">
+            <h2>Simulation Summary:</h2>
+            <div id="ns-per-day"></div>
+            <div id="sim-time"></div>
         </div>
         
         <div class="flex-container grid-container">
@@ -259,7 +256,6 @@ Here is the function that defines the Run Simulation button.
                 if (data.error) {
                     $('#output').text("Error: " + data.error);
                 } else {
-                    $('#output').text("Simulation ran successfully");
                     $('#ns-per-day').text(parseFloat(data['ns_day']).toFixed(0) + " ns/day");
                     $('#sim-time').text(parseFloat(data['sim_time']).toFixed(2) + " seconds");
 
