@@ -4,7 +4,7 @@ An interactive tutorial to metadynamics and enhanced sampling techniques for mol
 
 # Introduction
 
-VisMetaDynamics is a 1-dimensional Langevian integrator using a pre-defined free energy surface. This free energy surface is the result of a short MetaD simulation of alanine dipeptide, similar to this [tutorial](https://www.plumed.org/doc-v2.8/user-doc/html/lugano-3.html) and many others using alanine dipeptide as a toy system. The unmistakable, *a priori* free energy surface consistent alanine dipeptide's preference towards a *trans* configuration is an instantly recognizable and repeatedly proven result, both computationally and experimentally. 
+VisMetaDynamics is a 1-dimensional Langevian integrator using a pre-defined free energy surface. This free energy surface is the result of a short MetaD simulation of alanine dipeptide, similar to this [tutorial](https://www.plumed.org/doc-v2.8/user-doc/html/lugano-3.html) and many others using alanine dipeptide as a toy system. The unmistakable, *a priori* free energy surface consistent with alanine dipeptide's preference towards a *trans* configuration is an instantly recognizable and repeatedly proven result, both computationally and experimentally. 
 
 When I was first learning how to use metadynamics, I struggled to visualize the effects these parameters had on the resulting free energy surface. Besides running several metadynamics simulations with slightly different parameters, there was no intuitive way to understand the effects these hyperparameters had on the reweighted free energy surface. VisMetaDynamics allows you to tune these parameters by hand with many options to visualize and compare simulations in seconds.
 
@@ -39,7 +39,7 @@ All of the modules and functions used by `app.py` can be run independently of th
 >  This tutorial uses common libraries and has few dependencies, such as Scipy, Numpy, pickle, ffmpeg, and Flask. `environment.yml` is included if needed. 
 
 > [!NOTE]
-> If you are having Flask, internet, or browser issues, try to use the command line interface! Directions can be be found above. i
+> If you are having Flask, internet, or browser issues, try to use the command line interface! Directions can be found above. 
 
 
 > [!CAUTION]
