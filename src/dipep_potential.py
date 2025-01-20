@@ -74,7 +74,7 @@ if __name__ == '__main__':
     with open ("V_x_functions.pkl", 'wb') as f:
         pickle.dump(v_x_instance, f)
 
-    x = np.arange(-np.pi, np.pi, 0.01)
+    x = np.linspace(-np.pi, np.pi, 200) # arange -> linspace and less 
 # Plot original data and the best sine-cosine fitting
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.set(xlim=[-np.pi, np.pi], ylim=[-100, 100])
