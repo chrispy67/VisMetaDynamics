@@ -88,6 +88,15 @@ def run_script():
         response = {
             'ns_day': output_data.get('ns/day', 0),
             'sim_time': output_data.get('sim_time', 0),
+            # User parameters
+            '_steps': output_data.get('_steps', 0),
+            '_temp': output_data.get('_temp', 0),
+            '_x0': output_data.get('_x0', 0),
+            '_metad': output_data.get('_metad', 0),
+            '_w': output_data.get('_w', 0),
+            '_delta': output_data.get('_delta', 0),
+            '_hfreq': output_data.get('_hfreq', 0),
+
 
             # links to files created by run_walker.py; where all the graphing functions are called.
             # but these are NOT in output_data{}

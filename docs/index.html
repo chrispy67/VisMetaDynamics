@@ -157,6 +157,7 @@
             <h2>Simulation Summary:</h2>
             <div id="ns-per-day"></div>
             <div id="sim-time"></div>
+            <div id="user-params"></div>
         </div>
         
         <div class="flex-container grid-container">
@@ -256,8 +257,30 @@ Here is the function that defines the Run Simulation button.
                 if (data.error) {
                     $('#output').text("Error: " + data.error);
                 } else {
-                    $('#ns-per-day').text(parseFloat(data['ns_day']).toFixed(0) + " ns/day");
-                    $('#sim-time').text(parseFloat(data['sim_time']).toFixed(2) + " seconds");
+                    $('#ns-per-day').text(parseFloat(data['ns_day']).toFixed(0) + " ns/day"); // Simulation data
+                    $('#sim-time').text(parseFloat(data['sim_time']).toFixed(2) + " seconds"); // Simulation data
+
+                    // USER INPUTS ON ONE LINE
+                    $('#user-params').empty(); // clear previous inputs
+                    console.log("Recieved data: ", data) // What is being recieved by Flask app
+
+                    // Print to a single line instead
+                    let paramsLine = Object.keys(data)
+                        .filter(key => key.startsWith('_')) // Grab keys that only start with underscore
+                        .map(key => `${key.slice(1)}: ${data[key]}`) // Remove underscore
+                        .join(', '); // Join key-data pairs with user friendly format
+
+                    $('#user-params').append(`<p>${paramsLine} </p>`); //Append to empty div
+
+                    // DEPRECATED, does't look as good
+                    // Object.keys(data).forEach(function(key){
+                    //     // User inputs have underscore added as prefix
+                    //     if (key.startsWith('_')) {
+                    //         // Append this key to target element (div) with id='user-params'
+                    //         $('#user-params').append(`<p>${key}: ${data[key]}</p>`);
+                    //     }
+                    // });
+
 
                     // Assign the correct URL paths from the server response
                     console.log("FES Image URL:", data.fes_url);  // Debugging lines for issues saving 

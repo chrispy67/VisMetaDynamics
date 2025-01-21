@@ -112,6 +112,7 @@ def neg_bias(bias, rad, save_path = None):
     fig, ax = plt.subplots()
     x = np.linspace(-np.pi, np.pi, len(bias))
 
+    # min-to-zero correction
     bias -= np.min(bias)
 
     ax.set_xlabel('φ Dihedral Angle (radians)', fontweight='bold')
@@ -142,6 +143,10 @@ def animate_md(V, hills, rads, save_path = None):
     fig, ax = plt.subplots()
 
     frames = range(0, len(rads), 800)
+    fps = 60
+    
+    pause_frames = [frames[-1] * fps * 1]
+    extended_frames = list(frames) + pause_frames #'pauses' simulation at end for one second
     
     # ensures equal length arrays
     x = np.arange(-np.pi, np.pi, (2*np.pi / len(hills)))
@@ -156,9 +161,9 @@ def animate_md(V, hills, rads, save_path = None):
     ani = animation.FuncAnimation(
     fig=fig, 
     func=update, 
-    frames=frames, 
+    frames=extended_frames, #allows for brief pause at end of simulation
     fargs=(rads, V, scatter),
-    interval=30, 
+    interval=1000 / fps, 
     blit=True)
 
     ax.set_xlabel('φ Dihedral Angle (radians)', fontweight='bold')
@@ -182,40 +187,61 @@ def animate_md(V, hills, rads, save_path = None):
 ### WIP
 def histogram(s, bias):
     
-    ###-- Thermodynamic Quantities --###
-    kbT = 1.38e-23 * config.temp  # Boltzmann constant in J/K
-    rads = np.asarray(s)
+    ###-- Thermodynamic and Simulation Quantities/Constants --###
+    kb = 0.0019872041 * 6.022e23 # Boltzmann constant in kcal/K (TEMPORARY FIX)
+    beta = 1 / (kb * config.temp) # 1 / kbT molar
 
-    ###-- Bin the Angles into bias array bins --###
-    bins = len(bias) # to avoid any issues with different #s of bins
-    bin_edges = np.linspace(rads.min(), rads.max(), bins + 1) 
-    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    rads = np.asarray(s) # Time series len(rads) == config.steps
+    bias = np.asarray(bias) # dimensions: xlong == (-np.pi, np,pi, 100)
 
-    counts, _ = np.histogram(s, bins=bin_edges, density=True)
-    bin_indices = np.digitize(s, bin_edges) -1 
+    ###-- Proper Binning of radians consistent with bias --###
+    bins = len(bias) # to avoid any issues with different numberss of bins in CV & bias array
+    # This is affecting resolution and making my FES all jagged
 
-    # Map bias to the binned time series
-    binned_bias = np.zeros(bins)
+    # Same definitions as what is found in walker.py
+    bias_grid = np.linspace(-np.pi, np.pi, bins) 
+    rads_grid = np.linspace(np.min(rads), np.max(rads), bins) # this shifts domain on shorter sims
+
+    # zero-indexed array of the bin indices that the time series rad value falls into
+    bin_indices = np.digitize(rads, bins=bias_grid) - 1 
+
+    # Ensures all bins fall within this range, and will round values
+    bin_indices = np.clip(bin_indices, 0, len(bias) - 1)
+
+    weights = np.exp(beta * bias[bin_indices]) # everything is 1??
+
+    plt.figure(figsize=(10, 6))
+    ###-- Weighted Histogram based on bias --###
+    # These same bins will be the x-coordinate of FES
+    hist, bin_edges = np.histogram(rads, bins=rads_grid, weights=weights, density=True)
     
-    # Fit the bias inside a histogram of the same shape of the binned probabilities
-    for i in range(bins):
-        # Check which angles fall into this bin and reweight using the fixed bias array
-        mask = (bin_indices == i)
-        if np.any(mask):  # If there are angles in this bin
-            binned_bias[i] = bias[i]  # Assign the corresponding bias value
-        else:
-            binned_bias[i] = 0.0  # Default to zero if no data points fall into this bin
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:]) 
+    plt.bar(bin_centers, hist, width=bin_centers[1] - bin_centers[0], alpha=0.6, label='Weighted Histogram')
 
+    ###-- Raw simulation data (rads) --###
+    ###-- NOTICE BOTH OF THESE FIGURES ARE USING THE SAME X GRID --###
+    ###-- and they look identical because this is standard metad w/o adaptive gauss(?) --###
+    counts, _ = np.histogram(rads, bins=rads_grid, density=True)
+    plt.step(bin_centers, counts, where = "mid", linestyle='--', label='Unweighted Histogram')
 
-    ###-- REWEIGHTING --###
-    weights = np.exp(-binned_bias / kbT)
-    weighted_counts = counts * weights
+    plt.ylabel("Probability Density")
 
-    P_unbiased = weighted_counts / np.sum(weighted_counts)
-    P_unbiased[P_unbiased == 0] = 1e-20  # Avoid log(0)
-    FES = -kbT * np.log(P_unbiased)
     
-    plt.figure()
-    plt.plot(bin_centers, FES)
+    ###-- Free energy surface in units of kcal graph --###
+    fes = -kb * config.temp * np.log(hist)
+    fes -= np.min(fes) #min-to-zero correction
+    plt.legend()
+    plt.grid()
+    plt.show()
 
-    plt.show()    
+    plt.legend()
+    plt.grid()
+    print(np.min(fes), np.max(fes))
+    plt.plot(bin_centers, fes, '--', label='FES')
+
+    plt.show()
+
+
+
+
+

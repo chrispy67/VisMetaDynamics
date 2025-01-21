@@ -42,7 +42,7 @@ header nav ul {
 header nav ul li.title {
     flex-grow: 1;
     display: flex;
-    justify-content: center;
+    justify-content: left;
 }
 
 header nav ul li.title a {
