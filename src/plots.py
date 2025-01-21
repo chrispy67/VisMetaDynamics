@@ -146,7 +146,7 @@ def animate_md(V, hills, rads, save_path = None):
     fps = 60
     
     pause_frames = [frames[-1] * fps * 1]
-    extended_frames = list(frames) + pause_frames #'pauses' simulation at end for one second
+    extended_frames = list(frames) + pause_frames #'pauses' simulation at end for one second | does not work well
     
     # ensures equal length arrays
     x = np.arange(-np.pi, np.pi, (2*np.pi / len(hills)))
