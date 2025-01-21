@@ -7,11 +7,101 @@ import matplotlib.pyplot as plt
 import json
 
 # Define parameters that aren't set by user
-mratio = 10 # sets log ratio for site progress bar AND logger
+mratio = 10 # sets log ratio for site progress bar 
 
 dt = 0.02  # Time step is FIXED now
 t = 0  # Time
 m = 1  # Mass
+
+def CLI():
+    ###--Parse optional commandline arguments for debugging purposes or alternate usecase--###
+    parser = argparse.ArgumentParser(description="A command line interface for producing the same figures and data found on the Flask site. Check default values!!")
+
+    parser.add_argument('-steps', '--steps',
+        type = str,
+        default = '1000',
+        help = 'Number of simulation steps to be performed')
+    
+    parser.add_argument('-t', '--temp',
+        type = str, 
+        default = '310',
+        help = 'Temperature of system in Kelvin. This integrator does not use a complex thermostat found in standard MD engines')
+
+    parser.add_argument('-x0', '--x0',
+        type = str,
+        default = '0.01', 
+        help = 'Starting point of the dihedral angle')
+    
+    parser.add_argument('-metad', '--metad',
+        action='store_true',
+        help = 'turn metadynamics on/off')
+
+    parser.add_argument('-w', '--w',
+        type = str,
+        default = '1.2',
+        help = 'Height of deposited gaussians in units of energy')
+
+    parser.add_argument('-delta', '--delta',
+        type = str, 
+        default = '0.01',
+        help = 'The width of the depoostied gaussians in units of the collective variable (radians)')
+
+    parser.add_argument('-hfreq', '--hfreq', '--frequency', 
+        type = str,
+        default = '50',
+        help = 'Rate of hill deposition in terms of simulation steps.')
+
+    args = parser.parse_args()
+
+    # Error handling for user responses
+    try:
+        if int(args.steps) <= 0:
+            raise ValueError("Simulation steps must be a positive integer.")
+        
+        if int(args.temp) <= 0:
+            raise ValueError("Simulation temperature must be positive integer. Reminder, this is in Kelvin!")
+
+        if float(args.x0) < -np.pi or float(args.x0) > np.pi:
+            raise ValueError("The collective variable in this tutorial is a dihedral angle it is periodic on the domain [-π, π]. Enter whole numbers between -3 and 3.")
+        
+        if not args.metad:
+            # In case metadynamics was turned off, this would avoid conflicts with default values for metadynamics paramters; crucial!
+            args.w = '0.0'
+            args.delta = '0.0'
+            args.hfreq = '0.0'
+        
+        if float(args.w) < 0:
+            raise ValueError("Gaussian weight must be a positive floating point number, preferrably between 0.1 and 5")
+
+        if float(args.delta) < 0:
+            raise ValueError("Gaussian width must be a positive floating point number, preferrably between 0.01 and 1")
+
+        if float(args.hfreq) < 0:
+            raise ValueError("Frequency of gaussian deposition must be a positive integer, preferrably between 10 and 500")
+
+    except ValueError as e:
+        print(e)
+        exit(1)
+
+    # Build a dictionary of all the arguments that have been PARSED or given default values
+    args_dict = vars(args)
+
+    with open('src/config.py', 'w') as f:
+        f.write(f"#These parameters were written by the commandline interface of walker.py\n")
+
+        # Ensuring that the arguments being written in config.py are the SAME that are being referenced all throughout this program
+        # These are EXACTLY how they are written in config.py. Perhaps more flexibility should be added...
+        config_list = ['steps', 'temp', 'x0', 'metad', 'w', 'delta', 'hfreq']
+        
+        # Loop through each parsed argument and write it to config.py. 
+        for key, value in args_dict.items():
+            if key in config_list:
+                f.write(f"{key} = {value}\n") 
+        f.close()
+        
+    print("Parameters written to src.config.py")
+
+    return args_dict
 
 def integrator_performance(t_start, t_end):
     delta_t = t_end - t_start
@@ -206,106 +296,24 @@ if __name__ == '__main__':
         with open("src/V_x_functions.pkl", 'rb') as f:
             V_x_class = pickle.load(f)
 
-    # Start timer now since it is used in the parsing logic
-    t0 = time.time()
 
-    ###--Parse optional commandline arguments for debugging purposes or alternate usecase--###
-    parser = argparse.ArgumentParser(description="A command line interface for producing the same figures and data found on the Flask site. Check default values!!")
+    # Where command line arguments are handled if run as script
+    # CLI() returns an dict{} with arguments | writes arguments to src.config
+    args_dict = CLI()
 
-    parser.add_argument('-steps', '--steps',
-        type = str,
-        default = '1000',
-        help = 'Number of simulation steps to be performed')
-    
-    parser.add_argument('-t', '--temp',
-        type = str, 
-        default = '310',
-        help = 'Temperature of system in Kelvin. This integrator does not use a complex thermostat found in standard MD engines')
-
-    parser.add_argument('-x0', '--x0',
-        type = str,
-        default = '0.01', 
-        help = 'Starting point of the dihedral angle')
-    
-    parser.add_argument('-metad', '--metad',
-        action='store_true',
-        help = 'turn metadynamics on/off')
-
-    parser.add_argument('-w', '--w',
-        type = str,
-        default = '1.2',
-        help = 'Height of deposited gaussians in units of energy')
-
-    parser.add_argument('-delta', '--delta',
-        type = str, 
-        default = '0.01',
-        help = 'The width of the depoostied gaussians in units of the collective variable (radians)')
-
-    parser.add_argument('-hfreq', '--hfreq', '--frequency', 
-        type = str,
-        default = '50',
-        help = 'Rate of hill deposition in terms of simulation steps.')
-
-    args = parser.parse_args()
-
-    # Error handling for user responses
-    try:
-        if int(args.steps) <= 0:
-            raise ValueError("Simulation steps must be a positive integer.")
-        
-        if int(args.temp) <= 0:
-            raise ValueError("Simulation temperature must be positive integer. Reminder, this is in Kelvin!")
-
-        if float(args.x0) < -np.pi or float(args.x0) > np.pi:
-            raise ValueError("The collective variable in this tutorial is a dihedral angle it is periodic on the domain [-π, π]. Enter whole numbers between -3 and 3.")
-        
-        if not args.metad:
-            # In case metadynamics was turned off, this would avoid conflicts with default values for metadynamics paramters; crucial!
-            args.w = '0.0'
-            args.delta = '0.0'
-            args.hfreq = '0.0'
-        
-        if float(args.w) < 0:
-            raise ValueError("Gaussian weight must be a positive floating point number, preferrably between 0.1 and 5")
-
-        if float(args.delta) < 0:
-            raise ValueError("Gaussian width must be a positive floating point number, preferrably between 0.01 and 1")
-
-        if float(args.hfreq) < 0:
-            raise ValueError("Frequency of gaussian deposition must be a positive integer, preferrably between 10 and 500")
-
-    except ValueError as e:
-        print(e)
-        exit(1)
-
-    # build a dictionary of all the arguments that have been PARSED or given default values
-    args_dict = vars(args)
-    print(args_dict)
-    with open('src/config.py', 'w') as f:
-        f.write(f"#These parameters were written by the commandline interface of walker.py @ {t0}\n")
-
-        # Ensuring that the arguments being written in config.py are the SAME that are being referenced all throughout this program
-        # These are EXACTLY how they are written in config.py. Perhaps more flexibility should be added...
-        config_list = ['steps', 'temp', 'x0', 'metad', 'w', 'delta', 'hfreq']
-        
-        # Loop through each parsed argument and write it to config.py. 
-        for key, value in args_dict.items():
-            if key in config_list:
-                f.write(f"{key} = {value}\n") 
-        f.close()
-        
-    print("Parameters written to src.config.py")
     
     # The import AFTER writing all these parameters is crucial 
     import config as config
 
+
     ###--Beginning the main Metadynamics logic and calling integrator--###
+    t0 = time.time()
+
     summary_dict = walker(config.steps, config.x0, config.temp,
         config.metad, config.w, config.delta, config.hfreq)
     
     tplus = time.time()
     
-    # Need to define generic domain because of new class notation
     x = np.linspace(-np.pi, np.pi, 100)
     sim_time = np.linspace(0, config.steps+1, config.steps+1) * dt #ns
     
@@ -319,5 +327,13 @@ if __name__ == '__main__':
     # Basic printout for performance
     print(f" Simulation time: {summary_dict['sim_time']} seconds")
     print(f" Simulation performance: {summary_dict['ns/day']} ns/day ")
+    print(f"Simulation parameters: {args_dict}")
+
+    # One-liner to differentiate user inputs from simulation outputs
+    # Parameters that produced figures are printed to Flask page (thanks Gareth Tribello)
+    summary_dict.update({f"_{key}": value for key, value in args_dict.items()})
+
+    # dict_keys(['bias', 'q', 'V', 'E', 'sim_time', 'ns/day', 
+    # '_steps', '_temp', '_x0', '_metad', '_w', '_delta', '_hfreq'])
 
     plt.show()
