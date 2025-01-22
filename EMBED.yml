@@ -1,0 +1,7 @@
+ref1:
+  location: "21/004"
+  type: internal
+
+githublink:
+  location: "https://github.com/chrispy67/VisMetaDynamics"
+  type: external
