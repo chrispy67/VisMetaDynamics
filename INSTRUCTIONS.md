@@ -1,5 +1,8 @@
 # INSTRUCTIONS
 
+<b>This resource assumes you are familiar with molecular dynamics simulations and have completed [Plumed Masterclass 21.004](https://www.plumed-tutorials.org/lessons/21/004/data/NAVIGATION.html)! This resource is meant to help users build an intuition for choosing metadynamics parameters using alanine dipeptide as an example system. </b>
+
+
 1. <b>Clone the Github repository for this tutorial.</b>
     ```
     git clone https://github.com/chrispy67/VisMetaDynamics.git
