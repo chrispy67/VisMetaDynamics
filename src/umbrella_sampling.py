@@ -7,10 +7,12 @@ import matplotlib.pyplot as plt
 import json
 
 from walker import CLI, integrator_performance, update_progress, walker
+from plots import animate_md
 
-def umbrella_sampling(kappa=500, bins=2):
 
-    from V_x_functions import V_x
+def umbrella_sampling(kappa=100, bins=20):
+
+    from V_x_functions import V_x, UmbrellaPotential
     
     try:
         with open("V_x_functions.pkl", 'rb') as f:
@@ -20,36 +22,55 @@ def umbrella_sampling(kappa=500, bins=2):
         with open("src/V_x_functions.pkl", 'rb') as f:
             V_x_class = pickle.load(f)
     
-    # retstep=True gives us the spacing between windows, what fun!
+    
     windows, spacing = np.linspace(-np.pi, np.pi, bins, retstep=True)
+    print('Window centers (rad):', windows)
 
     # this acts as a ZERO INDEX for windows 
     centers = np.linspace(0, len(windows) - 1, bins, dtype=int)
 
     x = np.linspace(-np.pi, np.pi, 100)
-    known_potential = V_x_class.potential(x) 
 
+    # The default underlying potential is still used in walker.py
     ###---Visualizing US windows and harmonic restraints---###
     plt.figure(figsize=(10, 6))
+
+    sim_ensemble = {}
+
+    ## MAIN LOOP FOR BINNING 
     for center in centers:
-        
+
+        # This is the value of the KNOWN, underlying potential at the center of the restraint
         underlying_potential = V_x_class.potential(windows[center]) 
-        c = 0.5 * kappa
 
-        pot = c * (x - windows[center]) **2  
+        # Harmonic restraint as fxn of centers. 
+        umbrella_potential = UmbrellaPotential(center=windows[center], kappa=kappa, bins=bins)
 
-        # I need to refactor walker.py to handle different potentials
         summary = walker(
             steps = config.steps,
-            x0 = config.x0, 
+            x0 = windows[center], # STARTING POINT IS BOTTOM OF WELL/ CENTER OF HARMONIC RESTRAINT 
             T = config.temp,
             metad=False, 
             w = config.w, 
             delta =config.delta, 
-            hfreq = config.hfreq)
-        plt.plot(x, pot + underlying_potential)
+            hfreq = config.hfreq,
+            
+            # Passing a harmonic restraint to walker.py to override default behavior
+            V_x=umbrella_potential) # THIS NEEDS TO BE HARMONIC RESTRAINT
+        
+        
+        sim_ensemble[f'Window{center}'] = summary
+        sim_time = np.linspace(0, config.steps+1, config.steps+1)
 
-    plt.plot(x, known_potential, label='known potential')
+        # THIS PLOTS THE WINDOWS OVER THE KNOWN POTENTIAL
+        plt.plot(x, umbrella_potential.potential(x) + underlying_potential)
+
+
+    # Something is up with the force() function and the imported potential?
+    # print(sim_ensemble['Window1']['V'])
+
+
+    plt.plot(x, V_x_class.potential(x), label='known potential', linestyle='--')
 
     plt.xlim(-10, 10)
     plt.ylim(-25, 60)

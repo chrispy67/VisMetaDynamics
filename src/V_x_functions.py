@@ -42,3 +42,46 @@ class V_x:
     def force(self, phi):
         # min_to_zero = np.abs(np.min(sine_cosine_fit(phi, *self.params)))
         return sine_cosine_derivative(phi, *self.params) 
+    
+
+# V_x_functions.py
+class UmbrellaPotential:
+    def __init__(self, center, kappa, bins):
+        self.center = center
+        self.kappa = kappa
+        self.bins = bins
+
+        self.windows, self.spacing = np.linspace(-np.pi, np.pi, bins, retstep=True)
+        centers = np.linspace(0, len(self.windows) - 1, bins, dtype=int)
+
+    def potential(self, phi):
+        return 0.5 * self.kappa * (phi - self.center)**2
+
+    def force(self, phi):
+        return -self.kappa * (phi - self.center)
+
+
+    # This function is actually going to do all of the binning?
+    def get_bc(self):
+
+        # IDENTICAL TO BINNING IN umbrella_sampling.py
+        bounds = [] # (LEFT, RIGHT)
+
+        for window in self.windows:
+
+            # Handling cases for windows placed DIRECTLY on PBC
+            if window == -np.pi:
+                left_bound = -np.pi
+                right_bound = -np.pi + self.spacing
+            
+            if window == np.pi:
+                left_bound = np.pi - self.spacing
+                right_bound = np.pi
+
+            else:
+                left_bound = window - self.spacing
+                right_bound = window + self.spacing
+            
+            bounds.append((left_bound, right_bound))
+
+        return bounds # TUPLE

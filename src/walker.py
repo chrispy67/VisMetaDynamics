@@ -121,18 +121,24 @@ def update_progress(value):
 
 # Primary MD Engine
 # All functions that are necessary to these calculations are INSIDE THIS FUNCTION
-def walker(steps, x0, T, metad, w, delta, hfreq):
+def walker(steps, x0, T, metad, w, delta, hfreq, V_x=None, F_x=None):
     
     t0 = time.time()
     # Load in potential
-    try: # Running as script
-        with open ('V_x_functions.pkl', 'rb') as f:
-            V_x_class = pickle.load(f)
 
-    except FileNotFoundError: # Running as MODULE
-        with open('src/V_x_functions.pkl', 'rb') as f:
-            V_x_class = pickle.load(f)
+    # Handle Different Potentials 
+    if V_x is None:
+        try:
+            with open('V_x_functions.pkl', 'rb') as f:
+                V_x_class = pickle.load(f)
+        except FileNotFoundError:
+            with open('src/V_x_functions.pkl', 'rb') as f:
+                V_x_class = pickle.load(f)
+    else:
+        V_x_class = V_x
 
+
+    
     # Subfunction to calculate PE and force
     def force(r, s, w, delta):
         r = pbc(r)
@@ -176,7 +182,7 @@ def walker(steps, x0, T, metad, w, delta, hfreq):
     bias = np.zeros((len(xlong)), dtype=float) # this array does NOT need to change size; bias[-1] = is just the last entry
 
     # Initial configurations 
-    q[0] = x0
+    # q[0] = x0
     v0 = np.random.rand() - 0.5 #random initial potential
     p = v0 * m
     s = [0]
@@ -328,6 +334,7 @@ if __name__ == '__main__':
     print(f" Simulation time: {summary_dict['sim_time']} seconds")
     print(f" Simulation performance: {summary_dict['ns/day']} ns/day ")
     print(f"Simulation parameters: {args_dict}")
+    print(f"Bias: {summary_dict['bias']}")
 
     # One-liner to differentiate user inputs from simulation outputs
     # Parameters that produced figures are printed to Flask page (thanks Gareth Tribello)
