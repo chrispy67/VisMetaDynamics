@@ -121,24 +121,24 @@ def update_progress(value):
 
 # Primary MD Engine
 # All functions that are necessary to these calculations are INSIDE THIS FUNCTION
-def walker(steps, x0, T, metad, w, delta, hfreq, V_x=None, F_x=None):
+def walker(steps, x0, T, # simulation parameters
+        metad, w, delta, hfreq, # metadynamics parameters
+        us, kappa, center): # umbrella sampling parameters
     
     t0 = time.time()
-    # Load in potential
 
-    # Handle Different Potentials 
-    if V_x is None:
-        try:
-            with open('V_x_functions.pkl', 'rb') as f:
-                V_x_class = pickle.load(f)
-        except FileNotFoundError:
-            with open('src/V_x_functions.pkl', 'rb') as f:
-                V_x_class = pickle.load(f)
-    else:
-        V_x_class = V_x
+    # Load in potential depending on where script is executed
+    # This is the underlying phi sine/cosine function and is ALWAYS loaded
+    try:
+        with open('V_x_functions.pkl', 'rb') as f:
+            V_x_class = pickle.load(f)
+            f.close()
+    except FileNotFoundError:
+        with open('src/V_x_functions.pkl', 'rb') as f:
+            V_x_class = pickle.load(f)
+            f.close()
 
 
-    
     # Subfunction to calculate PE and force
     def force(r, s, w, delta):
         r = pbc(r)
@@ -148,11 +148,18 @@ def walker(steps, x0, T, metad, w, delta, hfreq, V_x=None, F_x=None):
 
         if metad:
             Fbias = np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2))) # Metadynamics eq
+
+        if us:
+            # Force applied by harmonic restraint needs to be stored for reweighting
+            Fbias = - kappa * (r - center)
+
         else:
             Fbias = 0
-        return V, Fpot + Fbias
+        return V, Fpot + Fbias, Fbias
 
     def pbc(r, bc=np.pi):
+        if us:
+            bc = np.pi + np.pi/2 
         # This potential is on the domain [-π, π]. Any other potential is going to need another PBC function!
         if r > bc:
             return r - 2 * bc
@@ -180,13 +187,14 @@ def walker(steps, x0, T, metad, w, delta, hfreq, V_x=None, F_x=None):
     E = np.zeros(steps + 1) # Making room for final energy
     V = np.zeros(steps + 1) # Making room for final potential
     bias = np.zeros((len(xlong)), dtype=float) # this array does NOT need to change size; bias[-1] = is just the last entry
+    us_force = np.zeros(steps + 1) # Only populated with values if US is happening
 
     # Initial configurations 
-    # q[0] = x0
+    q[0] = x0
     v0 = np.random.rand() - 0.5 #random initial potential
     p = v0 * m
     s = [0]
-    v, f = force(q[0], 0, w, delta)
+    v, f, _ = force(q[0], 0, w, delta)
     E[0] = 0.5 * p**2 + v
 
     for i in range(steps):
@@ -195,7 +203,8 @@ def walker(steps, x0, T, metad, w, delta, hfreq, V_x=None, F_x=None):
             s = np.append(s, q[i]) if i % hfreq == 0 else s # append a sigma as fxn of hfreq s[i % hfreq]
 
     #####---Langevian integrator (https://doi.org/10.1103/PhysRevE.75.056707)---#####
-        v, f = force(pbc(q[i]), s, w, delta) # q[0] is already cast as x0
+        v, f, fbias = force(pbc(q[i]), s, w, delta) # q[0] is already cast as x0
+        us_force[i] = fbias
         R1 = np.random.rand() - 0.5
         R2 = np.random.rand() - 0.5
 
@@ -203,7 +212,10 @@ def walker(steps, x0, T, metad, w, delta, hfreq, V_x=None, F_x=None):
 
     #####---WRAPPING NEW POSITION IN PBC FUNCTIONS---#####
         q[i + 1] += pbc(q[i] + (pplus / m) * dt + f / m * (dt**2 / 2)) # eq 12b w/ PBC effect
-        v2, f2 = force(q[i + 1], s, w, delta) # obtain updated potentials and forces from updated position 
+        
+        # Do I need to store this force for US?
+        v2, f2, _ = force(q[i + 1], s, w, delta) # obtain updated potentials and forces from updated position 
+        
         pminus = pplus + (f / 2 + f2 / 2) * dt # prev momentum
         p = c1 * pminus + c2 * R2 # eq12a, but calculating current step's momentum 
 
@@ -274,12 +286,12 @@ def walker(steps, x0, T, metad, w, delta, hfreq, V_x=None, F_x=None):
     PERFORMANCE_SUMMARY = integrator_performance(t0, tplus)
 
     # A dict{} is a nice way to store the simulation data
-    SIMULATION_DATA ={
+    SIMULATION_DATA = {
         'bias': bias.tolist(),
         'q': q.tolist(),
         'V': V.tolist(),
         'E': E.tolist(),
-        
+        'us_force': us_force.tolist()
     }
 
     # Now that I am moving this data as a JSON 
@@ -316,7 +328,7 @@ if __name__ == '__main__':
     t0 = time.time()
 
     summary_dict = walker(config.steps, config.x0, config.temp,
-        config.metad, config.w, config.delta, config.hfreq)
+        config.metad, config.w, config.delta, config.hfreq, us=False)
     
     tplus = time.time()
     
