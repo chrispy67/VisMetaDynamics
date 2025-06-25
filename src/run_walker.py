@@ -5,15 +5,27 @@ import matplotlib.animation as animation
 
 import numpy as np
 import config
+import umbrella_config as uc
 import json
 
 
 # This intermediate script is meant to avoid circular imports of walker.py and is executed EVERY TIME the Begin Simulation button is pressed
 
 if __name__ == '__main__':
+
+    # I would like to use only ONE config file here instead
     # Time consuming step here
-    summary_dict = walker(config.steps, config.x0, config.temp, 
-        config.metad, config.w, config.delta, config.hfreq)
+    summary_dict = walker(
+            steps = config.steps, 
+            x0 =config.x0, 
+            T = config.temp, 
+            metad = config.metad, 
+            w = config.w, 
+            delta = config.delta, 
+            hfreq = config.hfreq,
+            us = uc.us,
+            kappa = uc.kappa,
+            center = uc.windows) # SHOULD BE EMPTY ARRAY
 
     # Making a dict for parsed arguments so it is consistent with CLI and amenable to JSON output to Flask
     args_dict = {
