@@ -7,73 +7,75 @@ import matplotlib.pyplot as plt
 import json
 
 from walker import CLI, integrator_performance, update_progress, walker
-from plots import animate_md
 
 
-def umbrella_sampling(kappa=100, bins=20):
+from V_x_functions import V_x, UmbrellaPotential
 
-    from V_x_functions import V_x, UmbrellaPotential
-    
-    try:
-        with open("V_x_functions.pkl", 'rb') as f:
-            V_x_class = pickle.load(f)
+try:
+    with open("V_x_functions.pkl", 'rb') as f:
+        V_x_class = pickle.load(f)
 
-    except FileNotFoundError:
-        with open("src/V_x_functions.pkl", 'rb') as f:
-            V_x_class = pickle.load(f)
-    
-    
-    windows, spacing = np.linspace(-np.pi, np.pi, bins, retstep=True)
-    print('Window centers (rad):', windows)
+except FileNotFoundError:
+    with open("src/V_x_functions.pkl", 'rb') as f:
+        V_x_class = pickle.load(f)
 
-    # this acts as a ZERO INDEX for windows 
+
+# Will likely add user config input HERE
+def umbrella_config(kappa, bins, write):
+
+    # This function takes in arguments needed for the integrator and writes to a config file
+
+    windows = np.linspace(-np.pi, np.pi, bins)
+
+    # Zero index for windows
     centers = np.linspace(0, len(windows) - 1, bins, dtype=int)
 
-    x = np.linspace(-np.pi, np.pi, 100)
+    # Writing these parameters to a config file to 'meet in the middle' with walker.py and this script
+    # Adding write bool if i want to avoid overwriting user parameters
+    if write is True:
+        try:
+            with open('src/umbrella_config.py', 'w') as f:
+                f.write(f"#This config file written by src/umbrella_sampling.py\n")
+                f.write(f"import numpy as np\n")
+                f.write(f"us = True")
+                f.write(f"kappa = {kappa}\n") # string
+                f.write(f"bins = {bins}\n") # string
+                f.write(f"windows = np.array({np.array2string(windows, separator=', ')})\n")
+                f.write(f"centers = np.array({np.array2string(centers, separator=', ')})\n")
 
-    # The default underlying potential is still used in walker.py
-    ###---Visualizing US windows and harmonic restraints---###
+        except Exception as e:
+            print(e)
+
+    return kappa, bins, windows, centers
+
+
+def umbrella_sampling_visual():
+
+    # from src import umbrella_config as uc # IMPORT AFTER WRITING CONFIG FILE
+    import umbrella_config as uc
+    kappa = uc.kappa
+    bins = uc.bins
+    centers = uc.centers
+    windows = uc.windows
+    
+    x = np.linspace(-np.pi, np.pi, 100)
     plt.figure(figsize=(10, 6))
 
-    sim_ensemble = {}
 
-    ## MAIN LOOP FOR BINNING 
     for center in centers:
-
         # This is the value of the KNOWN, underlying potential at the center of the restraint
         underlying_potential = V_x_class.potential(windows[center]) 
 
-        # Harmonic restraint as fxn of centers. 
-        umbrella_potential = UmbrellaPotential(center=windows[center], kappa=kappa, bins=bins)
-
-        summary = walker(
-            steps = config.steps,
-            x0 = windows[center], # STARTING POINT IS BOTTOM OF WELL/ CENTER OF HARMONIC RESTRAINT 
-            T = config.temp,
-            metad=False, 
-            w = config.w, 
-            delta =config.delta, 
-            hfreq = config.hfreq,
-            
-            # Passing a harmonic restraint to walker.py to override default behavior
-            V_x=umbrella_potential) # THIS NEEDS TO BE HARMONIC RESTRAINT
-        
-        
-        sim_ensemble[f'Window{center}'] = summary
-        sim_time = np.linspace(0, config.steps+1, config.steps+1)
+        harmonic_potential = 0.5 * kappa * (x - windows[center]) ** 2
 
         # THIS PLOTS THE WINDOWS OVER THE KNOWN POTENTIAL
-        plt.plot(x, umbrella_potential.potential(x) + underlying_potential)
-
-
-    # Something is up with the force() function and the imported potential?
-    # print(sim_ensemble['Window1']['V'])
+        plt.plot(x, harmonic_potential + underlying_potential)
 
 
     plt.plot(x, V_x_class.potential(x), label='known potential', linestyle='--')
 
     plt.xlim(-10, 10)
-    plt.ylim(-25, 60)
+    plt.ylim(-25, 100)
     plt.grid(True)
     plt.legend()
     plt.show()
@@ -81,9 +83,44 @@ def umbrella_sampling(kappa=100, bins=20):
 
 
 if __name__ == '__main__':
+    
+    # Pass user arguments and WRITE to config file
+    umbrella_config(300, 15, write=True)
+    import umbrella_config as uc
+    from plots import animate_md
 
+    # Load visualization (WIP)
+    umbrella_sampling_visual()
 
-    umbrella_sampling()
+    simulation_ensemble = {}
+
+    for center in uc.centers:        
+        window = walker(
+            steps = config.steps,
+            x0 = uc.windows[center],
+            T = config.temp,
+            metad = False,
+            w = config.w, # OFF
+            delta = config.delta, # OFF
+            hfreq = config.delta, # OFF
+            us = True, 
+            kappa = uc.kappa, # force constant in kJ/mol
+            center = uc.windows[center] # center of harmonic restraint in RADIANS is starting point and must be passed to integrator
+        )
+
+        x = np.linspace(0, len(window['q']), len(window['q']))
+        # plt.plot(x, window['q'], label = f'window {center}')
+        plt.plot(x, window['us_force'], label=f'window {center}')
+
+        simulation_ensemble[f'Window{center}'] = window
+
+    # plt.plot(x, simulation_ensemble['Window1']['us_force'])
+    plt.legend()
+    plt.show()
+
+    # print(simulation_ensemble['Window1']['us_force'])
+    # animate_md(simulation_ensemble['Window1']['V'], simulation_ensemble['Window1']['q'])
+
 
     ###---Umbrella Sampling---###
     # Arguments given to a simple PLUMED simulation are:
