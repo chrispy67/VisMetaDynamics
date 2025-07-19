@@ -1,10 +1,26 @@
 import numpy as np
 import argparse
-import pickle
 import config as config
 import time
 import matplotlib.pyplot as plt
 import json
+import logging
+import os
+
+## This script should be run via commandline for debugging purposes. 
+## This avoids launching the flask window and allows for more flexible debugging. 
+## the --DEMO flag can be used to run a simulation with ideal parameters.
+
+# Set up logging
+log_path = os.path.join(os.path.dirname(__file__), '../log/walker.log')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_path, mode='w')
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Define parameters that aren't set by user
 mratio = 10 # sets log ratio for site progress bar 
@@ -13,10 +29,68 @@ dt = 0.02  # Time step is FIXED now
 t = 0  # Time
 m = 1  # Mass
 
+def log_simulation_header(steps, x0, T, metad, w, delta, hfreq, us, kappa, center):
+    """Log simulation initialization parameters like a real MD engine"""
+    logger.info("=" * 80)
+    logger.info("MOLECULAR DYNAMICS SIMULATION INITIALIZATION")
+    logger.info("=" * 80)
+    logger.info(f"Simulation type: {'Metadynamics' if metad else 'Umbrella Sampling' if us else 'Standard MD'}")
+    logger.info(f"Total simulation steps: {steps}")
+    logger.info(f"Time step (dt): {dt} ps")
+    logger.info(f"Total simulation time: {steps * dt:.3f} ps")
+    logger.info(f"Temperature: {T} K")
+    logger.info(f"Initial position (x0): {x0:.6f} radians")
+    logger.info(f"Mass: {m} amu")
+    
+    if metad:
+        logger.info("METADYNAMICS PARAMETERS:")
+        logger.info(f"  Gaussian height (w): {w} kJ/mol")
+        logger.info(f"  Gaussian width (delta): {delta} radians")
+        logger.info(f"  Hill deposition frequency: {hfreq} steps")
+        logger.info(f"  Expected number of hills: {steps // hfreq}")
+    
+    if us:
+        logger.info("UMBRELLA SAMPLING PARAMETERS:")
+        logger.info(f"  Force constant (kappa): {kappa} kJ/mol/rad²")
+        logger.info(f"  Restraint center: {center:.6f} radians")
+
+def log_metadynamics_event(step, q, s, bias_contribution):
+    """Log metadynamics hill deposition events"""
+    logger.info(f"METADYNAMICS: Hill deposited at step {step}")
+    logger.info(f"  Current position: {q:.6f} radians")
+    logger.info(f"  Total hills deposited: {len(s)}")
+    logger.info(f"  Bias contribution: {bias_contribution:.4f} kJ/mol")
+
+def log_umbrella_sampling_metrics(step, q, center, kappa, force):
+    """Log umbrella sampling specific metrics"""
+    if step % 100 == 0:  # Log every 100 steps
+        restraint_energy = 0.5 * kappa * (q - center)**2
+        logger.info(f"UMBRELLA SAMPLING: Step {step}")
+        logger.info(f"  Position: {q:.6f} radians")
+        logger.info(f"  Restraint center: {center:.6f} radians")
+        logger.info(f"  Restraint force: {force:.4f} kJ/mol/rad")
+        logger.info(f"  Restraint energy: {restraint_energy:.4f} kJ/mol")
+
+def log_simulation_summary(simulation_data, t_start, t_end):
+    """Log final simulation summary"""
+    logger.info("=" * 80)
+    logger.info("SIMULATION SUMMARY")
+    logger.info("=" * 80)
+    logger.info(f"Total simulation time: {t_end - t_start:.2f} seconds")
+    logger.info(f"Performance: {simulation_data['ns/day']:.1f} ns/day")
+    
+    if simulation_data['bias']:
+        max_bias = max(simulation_data['bias'])
+        logger.info(f"Maximum bias potential: {max_bias:.4f} kJ/mol")
+    
+    logger.info("=" * 80)
+
+
 def CLI():
     ###--Parse optional commandline arguments for debugging purposes or alternate usecase--###
     parser = argparse.ArgumentParser(description="A command line interface for producing the same figures and data found on the Flask site. Check default values!!")
 
+    ## Simulation Parameters
     parser.add_argument('-steps', '--steps',
         type = str,
         default = '1000',
@@ -32,6 +106,7 @@ def CLI():
         default = '0.01', 
         help = 'Starting point of the dihedral angle')
     
+    ## Metadyanmics Parameters  
     parser.add_argument('-metad', '--metad',
         action='store_true',
         help = 'turn metadynamics on/off')
@@ -51,61 +126,88 @@ def CLI():
         default = '50',
         help = 'Rate of hill deposition in terms of simulation steps.')
 
+    ## METAD DEMO, HIDDEN FROM USER
+    parser.add_argument('--DEMO', action='store_true',help=argparse.SUPPRESS)
+
+    ## Everything below is for Umbrella Sampling
+    parser.add_argument('-us', '--umbrella',
+        action='store_true',
+        dest='us',  # This maps the --umbrella flag to the 'us' attribute
+        help = 'Umbrella sampling on/off')
+    
+    parser.add_argument('--kappa', '-k',
+        type = str,
+        default = '100', 
+        help = 'Force constant of harmonic restraint (kJ/mol)')
+    
+    parser.add_argument('--bins', '--windows',
+        type = int,
+        default = '10',
+        help = 'Number of evennly spaced windows (i.e. independent simulations) to run')
+
     args = parser.parse_args()
 
-    # Error handling for user responses
-    try:
-        if int(args.steps) <= 0:
-            raise ValueError("Simulation steps must be a positive integer.")
-        
-        if int(args.temp) <= 0:
-            raise ValueError("Simulation temperature must be positive integer. Reminder, this is in Kelvin!")
+    ## Handle optional demo flag
+    if getattr(args, 'DEMO', False):
+        args.steps = 105000
+        args.temp = 310
+        args.x0 = 0.0
+        args.metad = True,
+        args.w = 1.2
+        args.delta = 0.1
+        args.hfreq = 100
+        args.us = False
+        args.kappa = 100 # args.us is False, parameter choice is not used
+        args.bins = 10 # args.us is False, parameter choice is not used
 
-        if float(args.x0) < -np.pi or float(args.x0) > np.pi:
-            raise ValueError("The collective variable in this tutorial is a dihedral angle it is periodic on the domain [-π, π]. Enter whole numbers between -3 and 3.")
-        
-        if not args.metad:
-            # In case metadynamics was turned off, this would avoid conflicts with default values for metadynamics paramters; crucial!
-            args.w = '0.0'
-            args.delta = '0.0'
-            args.hfreq = '0.0'
-        
-        if float(args.w) < 0:
-            raise ValueError("Gaussian weight must be a positive floating point number, preferrably between 0.1 and 5")
 
-        if float(args.delta) < 0:
-            raise ValueError("Gaussian width must be a positive floating point number, preferrably between 0.01 and 1")
-
-        if float(args.hfreq) < 0:
-            raise ValueError("Frequency of gaussian deposition must be a positive integer, preferrably between 10 and 500")
-
-    except ValueError as e:
-        print(e)
+    # Error handling for user responses using centralized validation
+    validation_errors = config.validate_command_line_args(args)
+    if validation_errors:
+        for error in validation_errors:
+            print(error)
         exit(1)
 
     # Build a dictionary of all the arguments that have been PARSED or given default values
     args_dict = vars(args)
 
-    with open('src/config.py', 'w') as f:
-        f.write(f"#These parameters were written by the commandline interface of walker.py\n")
+    # Ensure 'us' is always present and is a boolean
+    if 'us' not in args_dict:
+        args_dict['us'] = False
+    else:
+        args_dict['us'] = bool(args_dict['us'])
 
-        # Ensuring that the arguments being written in config.py are the SAME that are being referenced all throughout this program
-        # These are EXACTLY how they are written in config.py. Perhaps more flexibility should be added...
-        config_list = ['steps', 'temp', 'x0', 'metad', 'w', 'delta', 'hfreq']
+    # Convert numeric values to correct types
+    for key in ['steps', 'temp', 'x0', 'w', 'delta', 'hfreq', 'kappa', 'bins']:
+        if key in args_dict:
+            if key in ['steps', 'hfreq', 'bins']:
+                args_dict[key] = int(float(args_dict[key]))
+            else:
+                args_dict[key] = float(args_dict[key])
+
+    # Create a complete configuration dictionary that can be used directly
+    # This avoids the need to modify config.py
+    config_dict = {
+        'steps': args_dict['steps'],
+        'temp': args_dict['temp'], 
+        'x0': args_dict['x0'],
+        'metad': args_dict['metad'],
+        'w': args_dict['w'],
+        'delta': args_dict['delta'],
+        'hfreq': args_dict['hfreq'],
+        'us': args_dict['us'],
+        'kappa': args_dict['kappa'],
+        'bins': args_dict['bins']
+    }
+    
+    print("Configuration loaded from command line arguments (no file modification)")
+    print(f"Simulation parameters: {config_dict}")
         
-        # Loop through each parsed argument and write it to config.py. 
-        for key, value in args_dict.items():
-            if key in config_list:
-                f.write(f"{key} = {value}\n") 
-        f.close()
-        
-    print("Parameters written to src.config.py")
+    return config_dict
 
-    return args_dict
-
-def integrator_performance(t_start, t_end):
+def integrator_performance(t_start, t_end, steps):
     delta_t = t_end - t_start
-    ns_day = (config.steps / delta_t) * dt * 86400 # nanoseconds per day
+    ns_day = (steps / delta_t) * dt * 86400 # nanoseconds per day
 
     performance_summary = {
         'sim_time': delta_t,
@@ -116,8 +218,12 @@ def integrator_performance(t_start, t_end):
 
 # overwrites progress bar value as .json as function of mratio
 def update_progress(value):
-    with open('static/.progress.json', 'w') as f:
-        json.dump({"value": value}, f)
+    try:
+        with open('static/.progress.json', 'w') as f:
+            json.dump({"value": value}, f)
+    except (IOError, OSError) as e:
+        # Silently handle file writing errors to avoid crashing the simulation
+        pass
 
 # Primary MD Engine
 # All functions that are necessary to these calculations are INSIDE THIS FUNCTION
@@ -126,53 +232,33 @@ def walker(steps, x0, T, # simulation parameters
         us, kappa, center): # umbrella sampling parameters
     
     t0 = time.time()
+    last_log_time = t0
+
+    # Log simulation initialization
+    log_simulation_header(steps, x0, T, metad, w, delta, hfreq, us, kappa, center)
 
     # Load in potential depending on where script is executed
     # This is the underlying phi sine/cosine function and is ALWAYS loaded
-    try:
-        with open('V_x_functions.pkl', 'rb') as f:
-            V_x_class = pickle.load(f)
-            f.close()
-    except FileNotFoundError:
-        with open('src/V_x_functions.pkl', 'rb') as f:
-            V_x_class = pickle.load(f)
-            f.close()
+    from utils import load_pickle_file
+    V_x_class = load_pickle_file('V_x_functions.pkl')
 
 
     # Subfunction to calculate PE and force
-    def force(r, s, w, delta):
+    def force(r, s, w, delta, center_val):
         r = pbc(r)
         V = V_x_class.potential(r)
-        F = V_x_class.force(r) #function notation is at odds with the potential one-liner 
+        F = V_x_class.force(r)
         Fpot = -F
 
+        Fbias = 0 # Must define Fbias here since it is being added to by Fpot
         if metad:
-            Fbias = np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2))) # Metadynamics eq
-
+            Fbias += np.sum(w * (r - s) / delta**2 * np.exp(-(r - s)**2 / (2 * delta**2)))
         if us:
-            # Force applied by harmonic restraint needs to be stored for reweighting
-            Fbias = - kappa * (r - center)
-
-        else:
-            Fbias = 0
+            Fbias += - kappa * (r - center_val)
         return V, Fpot + Fbias, Fbias
 
     def pbc(r, bc=np.pi):
-        if us:
-            bc = np.pi + np.pi/2 
-        # This potential is on the domain [-π, π]. Any other potential is going to need another PBC function!
-        if r > bc:
-            return r - 2 * bc
-
-        elif r < -bc:
-            return r + 2 * bc
-
-        else:
-        # If r is within [-π, π], no adjustment is needed
-            return r
-
-        # Deprecated 11/11 as it is INCORRECT
-        # return (((r + bc) % (2 * bc)) - bc) 
+        return (((r + bc) % (2 * bc)) - bc) 
 
     # Metadynamics functions and equations
     gamma = 5.0 #
@@ -182,7 +268,7 @@ def walker(steps, x0, T, # simulation parameters
 
     
     # Empty arrays to store information and underlying potential
-    xlong = np.linspace(-np.pi, np.pi, 100) #len of bias array is directly related to this. 
+    xlong = np.linspace(-np.pi, np.pi, 100) # This is the axis in which bias is stored. ADJUST FOR DIFFERENT RESOLUTION 
     q = np.zeros(steps + 1) # Making room for final radian
     E = np.zeros(steps + 1) # Making room for final energy
     V = np.zeros(steps + 1) # Making room for final potential
@@ -194,7 +280,7 @@ def walker(steps, x0, T, # simulation parameters
     v0 = np.random.rand() - 0.5 #random initial potential
     p = v0 * m
     s = [0]
-    v, f, _ = force(q[0], 0, w, delta)
+    v, f, _ = force(q[0], 0, w, delta, center)  # Pass center as parameter
     E[0] = 0.5 * p**2 + v
 
     for i in range(steps):
@@ -203,8 +289,7 @@ def walker(steps, x0, T, # simulation parameters
             s = np.append(s, q[i]) if i % hfreq == 0 else s # append a sigma as fxn of hfreq s[i % hfreq]
 
     #####---Langevian integrator (https://doi.org/10.1103/PhysRevE.75.056707)---#####
-        v, f, fbias = force(pbc(q[i]), s, w, delta) # q[0] is already cast as x0
-        us_force[i] = fbias
+        v, f, fbias = force(pbc(q[i]), s, w, delta, center)  # Pass center as parameter
         R1 = np.random.rand() - 0.5
         R2 = np.random.rand() - 0.5
 
@@ -214,53 +299,52 @@ def walker(steps, x0, T, # simulation parameters
         q[i + 1] += pbc(q[i] + (pplus / m) * dt + f / m * (dt**2 / 2)) # eq 12b w/ PBC effect
         
         # Do I need to store this force for US?
-        v2, f2, _ = force(q[i + 1], s, w, delta) # obtain updated potentials and forces from updated position 
+        v2, f2, _ = force(q[i + 1], s, w, delta, center)  # Pass center as parameter
         
         pminus = pplus + (f / 2 + f2 / 2) * dt # prev momentum
         p = c1 * pminus + c2 * R2 # eq12a, but calculating current step's momentum 
 
-        E[i + 1] = 0.5 * p**2 + v2 # Updated energy, classic Newtonian eq 
+        E[i + 1] = 0.5 * p**2 + v2 # Updated energy, classic Newtonian eq
+        
+        # Log umbrella sampling metrics
+        if us:
+            log_umbrella_sampling_metrics(i, q[i], center, kappa, fbias)
+
 
         if metad:
             if i % hfreq == 0: 
                 if len(s) > 1: 
+                    # Log metadynamics hill deposition
+                    bias_contribution = np.sum(w * np.exp(-(q[i + 1] - np.array(s))**2 / (2 * delta**2)))
+                    log_metadynamics_event(i, q[i], s, bias_contribution)
 
                     for k in range(len(xlong)):
 
                         rad_k = xlong[k] # where on the x-axis we are biasing
 
-                        # A simple harmonic restraint. OG
-                        bias_k = w * np.exp(-(rad_k - np.array(s)) ** 2 / (2 * delta**2)) #Bias(rads) and length increases each hfreq
-
-                        # Dimensions of gaussian
-                        mean_s = np.mean(bias_k)
-                        sigma_s = np.std(bias_k)
-
-                        ####---HANDLING PBC OF GAUSSIAN ---#####
-                        if rad_k + (mean_s + 4 * sigma_s) > np.pi: # the 2d gaussian stretches arcross π
-                            # print(f'**PBC ENCOUNTERED AT π (step {i}) at summation on {rad_k} radians**:')
-                            # print(f'dimensions of sigma: {mean_s} ± {sigma_s}')
-                            # print(f'added to the following bin: {k}')
-                            # print('\n')
-                            bias[k - len(xlong)] += np.sum(bias_k)
-
-                        if rad_k - (mean_s - 4 * sigma_s) < -np.pi: # the 2d gaussian stretches arcross -π
-                            # print(f'**PBC ENCOUNTERED AT- π (step {i}) at summation on {rad_k} radians**:')
-                            # print(f'dimensions of sigma: {mean_s} ± {sigma_s}')
-                            # print(f'added to the following bins: {k}')
-                            # print('\n')
-                            bias[k + len(xlong)] += np.sum(bias_k)
-
-                        else:
-                            # print(f'**PBC ENCOUNTERED AT- π (step {i}) at summation on {rad_k} radians**:')
-                            # print(f"**NORMAL CASE ENCOUNTERED (step {i}) at summation on {rad_k}")
-                            # print(f'dimensions of sigma: {mean_s} ± {sigma_s}')
-                            # print(f'added to the following bins: {k}')
-                            # print('\n')
-                            bias[k] += np.sum(bias_k) #summation step
-
-                        # PRIOR TO THINKING ABOUT PBC
-                        # bias[k] += np.sum(w * np.exp(-(xlong[k] - np.array(s))**2 / (2 * delta**2)))
+                        # Calculate bias contribution for this bin
+                        bias_k = w * np.exp(-(rad_k - np.array(s)) ** 2 / (2 * delta**2))
+                        total_bias = np.sum(bias_k)
+                        
+                        # Always add to current bin
+                        bias[k] += total_bias
+                        
+                        # Handle periodic boundary conditions properly
+                        # For bins near π, also add to corresponding bin near -π
+                        if rad_k > np.pi - 3 * delta:  # Near π boundary
+                            # Find corresponding bin near -π
+                            pbc_rad = rad_k - 2 * np.pi
+                            pbc_k = int((pbc_rad - xlong[0]) / (xlong[1] - xlong[0]))
+                            if 0 <= pbc_k < len(xlong):
+                                bias[pbc_k] += total_bias
+                        
+                        # For bins near -π, also add to corresponding bin near π  
+                        if rad_k < -np.pi + 3 * delta:  # Near -π boundary
+                            # Find corresponding bin near π
+                            pbc_rad = rad_k + 2 * np.pi
+                            pbc_k = int((pbc_rad - xlong[0]) / (xlong[1] - xlong[0]))
+                            if 0 <= pbc_k < len(xlong):
+                                bias[pbc_k] += total_bias
 
 
             # append the biased potential to existing potential 
@@ -283,7 +367,7 @@ def walker(steps, x0, T, # simulation parameters
 
 
     tplus = time.time()
-    PERFORMANCE_SUMMARY = integrator_performance(t0, tplus)
+    PERFORMANCE_SUMMARY = integrator_performance(t0, tplus, steps)
 
     # A dict{} is a nice way to store the simulation data
     SIMULATION_DATA = {
@@ -297,62 +381,100 @@ def walker(steps, x0, T, # simulation parameters
     # Now that I am moving this data as a JSON 
     SIMULATION_DATA.update(PERFORMANCE_SUMMARY)
     
+    # Log final simulation summary
+    log_simulation_summary(SIMULATION_DATA, t0, tplus)
+    
     return SIMULATION_DATA
 
 
 if __name__ == '__main__':
     import time
-    from plots import animate_md, fes, neg_bias, rads_time, histogram
+    from plots import animate_metad, fes, neg_bias, rads_time, histogram
     # If you want to pickle a class, the same script MUST know the format of the class
     from V_x_functions import V_x   
-
-    try:
-        with open("V_x_functions.pkl", 'rb') as f:
-            V_x_class = pickle.load(f)
-
-    except FileNotFoundError:
-        with open("src/V_x_functions.pkl", 'rb') as f:
-            V_x_class = pickle.load(f)
+ 
+    from utils import load_pickle_file
+    V_x_class = load_pickle_file("V_x_functions.pkl")
 
 
     # Where command line arguments are handled if run as script
-    # CLI() returns an dict{} with arguments | writes arguments to src.config
-    args_dict = CLI()
-
-    
-    # The import AFTER writing all these parameters is crucial 
-    import config as config
+    # CLI() returns a complete configuration dictionary
+    config_dict = CLI()
 
 
     ###--Beginning the main Metadynamics logic and calling integrator--###
     t0 = time.time()
+    
+    logger.info("Starting molecular dynamics simulation...")
+    logger.info(f"Command line arguments: {config_dict}")
 
-    summary_dict = walker(config.steps, config.x0, config.temp,
-        config.metad, config.w, config.delta, config.hfreq, us=False)
+    # Handle both metadynamics (scalar) and umbrella sampling (single window) cases
+    if config_dict['us']:  # Use config_dict instead of config.us
+        # For umbrella sampling, generate windows and centers if not present
+        import numpy as np
+        bins = config_dict.get('bins', 15)
+        windows = np.linspace(-np.pi, np.pi, bins)
+        centers = np.arange(bins, dtype=int)
+        if len(centers) > 0:
+            center = windows[centers[0]]  # Use the first window center
+            logger.info(f"Running single umbrella sampling window at center: {center}")
+        else:
+            # Fallback if centers array is not available
+            center = 0.0
+            logger.warning("No centers found, using default center = 0.0")
+    else:
+        # For metadynamics, use a default center value (not used when us=False)
+        center = 0.0  # Default value for metadynamics
+        logger.info(f"Metadynamics simulation: center = {center} (this value is NOT used in metadynamics)")
+        
+    logger.info(f"Final center value passed to walker: {center}")
+    logger.info(f"Simulation type: metad={config_dict['metad']}, us={config_dict['us']}")
+    
+    summary_dict = walker(config_dict['steps'], config_dict['x0'], config_dict['temp'],
+        config_dict['metad'], config_dict['w'], config_dict['delta'], config_dict['hfreq'],
+        config_dict['us'], config_dict['kappa'], center)  # Use config_dict parameters
     
     tplus = time.time()
     
     x = np.linspace(-np.pi, np.pi, 100)
-    sim_time = np.linspace(0, config.steps+1, config.steps+1) * dt #ns
+    sim_time = np.linspace(0, config_dict['steps']+1, config_dict['steps']+1) * dt #ns
     
     # Generates plots that populate Flask page and appear in matplitlib window (CLI)
     fes()
     neg_bias(summary_dict['bias'], summary_dict['q'])
     rads_time(summary_dict['q'], sim_time)
-    animate_md(summary_dict['V'], summary_dict['bias'], summary_dict['q'])
-
+    animate_metad(summary_dict['V'][:-1], summary_dict['q'][:-1])
 
     # Basic printout for performance
-    print(f" Simulation time: {summary_dict['sim_time']} seconds")
-    print(f" Simulation performance: {summary_dict['ns/day']} ns/day ")
-    print(f"Simulation parameters: {args_dict}")
-    print(f"Bias: {summary_dict['bias']}")
+    logger.info("=" * 80)
+    logger.info("SIMULATION COMPLETED SUCCESSFULLY")
+    logger.info("=" * 80)
+    logger.info(f"Simulation time: {summary_dict['sim_time']} seconds")
+    logger.info(f"Simulation performance: {summary_dict['ns/day']} ns/day")
+    logger.info(f"Simulation parameters: {config_dict}")
+    logger.info("=" * 80)
+    
 
     # One-liner to differentiate user inputs from simulation outputs
     # Parameters that produced figures are printed to Flask page (thanks Gareth Tribello)
-    summary_dict.update({f"_{key}": value for key, value in args_dict.items()})
+    summary_dict.update({f"_{key}": value for key, value in config_dict.items()})
 
-    # dict_keys(['bias', 'q', 'V', 'E', 'sim_time', 'ns/day', 
-    # '_steps', '_temp', '_x0', '_metad', '_w', '_delta', '_hfreq'])
+    print(summary_dict['bias'])
 
+    bias_array = np.array(summary_dict['bias'])
+    x = np.linspace(0, len(bias_array), len(bias_array))
+    plt.plot(x, bias_array)
+    plt.title('BIAS ARRAY AS FXN OF BIN NUMBER')
+    plt.xlabel('BIN NUMBER')
+    plt.ylabel('BIAS')
+    plt.xlim(0, 100)
     plt.show()
+
+
+
+    # UPDATED WITH US INTEGRATION
+    #dict_keys(['bias', 'q', 'V', 'E', 'us_force', 'sim_time', 'ns/day', 
+    # '_steps', '_temp', '_x0', '_metad', '_w', 
+    # '_delta', '_hfreq', '_us', '_kappa', '_bins'])
+
+    plt.show()  
