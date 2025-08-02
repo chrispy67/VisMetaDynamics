@@ -11,6 +11,12 @@ import os
 ## This avoids launching the flask window and allows for more flexible debugging. 
 ## the --DEMO flag can be used to run a simulation with ideal parameters.
 
+## UNITS HERE ARE KJ/MOL
+## DEFAULT UNTIS OF PLUMED ARE KJ/MOL, THATS WHERE MY UNDERLYING F.E.S. CAME FROM, AND THE VALUES THAT LINE UP WITH MY FITTING ARE IN KJ/MOL
+## ref and cite lugano tutorial https://www.plumed.org/doc-v2.8/user-doc/html/lugano-3.html
+
+
+
 # Set up logging
 log_path = os.path.join(os.path.dirname(__file__), '../log/walker.log')
 logging.basicConfig(
@@ -127,7 +133,10 @@ def CLI():
         help = 'Rate of hill deposition in terms of simulation steps.')
 
     ## METAD DEMO, HIDDEN FROM USER
-    parser.add_argument('--DEMO', action='store_true',help=argparse.SUPPRESS)
+    parser.add_argument('--METAD_DEMO', action='store_true',help=argparse.SUPPRESS)
+
+    ## US DEMO, HIDDEN FROM USER
+    parser.add_argument('--US_DEMO', action='store_true', help=argparse.SUPPRESS)
 
     ## Everything below is for Umbrella Sampling
     parser.add_argument('-us', '--umbrella',
@@ -148,8 +157,8 @@ def CLI():
     args = parser.parse_args()
 
     ## Handle optional demo flag
-    if getattr(args, 'DEMO', False):
-        args.steps = 105000
+    if getattr(args, 'METAD_DEMO', False):
+        args.steps = 110000
         args.temp = 310
         args.x0 = 0.0
         args.metad = True,
@@ -160,6 +169,14 @@ def CLI():
         args.kappa = 100 # args.us is False, parameter choice is not used
         args.bins = 10 # args.us is False, parameter choice is not used
 
+    if getattr(args, 'US_DEMO', False):
+        args.steps = 10000
+        args.temp = 310
+        args.x0 = 0.0
+        args.metad = False
+        args.us = True
+        args.kappa = 500
+        args.bins = 10
 
     # Error handling for user responses using centralized validation
     validation_errors = config.validate_command_line_args(args)
@@ -263,12 +280,16 @@ def walker(steps, x0, T, # simulation parameters
     # Metadynamics functions and equations
     gamma = 5.0 #
     beta = 1 / T / 1.987e-3  # assuming V is in kcal/mol ### UNIT CHECK
+    ### UNIT CHECK 7/30/25 WE ARE IN KJ/MOL ###
     c1 = np.exp(-gamma * dt / 2)
     c2 = np.sqrt((1 - c1**2) * m / beta)
 
     
     # Empty arrays to store information and underlying potential
-    xlong = np.linspace(-np.pi, np.pi, 100) # This is the axis in which bias is stored. ADJUST FOR DIFFERENT RESOLUTION 
+    
+    # endpoint=False is important for the minimum image convention handling of bias! Without it, I have bins at -π and π, which are essentially the same with my PBC 
+    xlong = np.linspace(-np.pi, np.pi, 100, endpoint=False) # This is the axis in which bias is stored. ADJUST FOR DIFFERENT RESOLUTION 
+
     q = np.zeros(steps + 1) # Making room for final radian
     E = np.zeros(steps + 1) # Making room for final energy
     V = np.zeros(steps + 1) # Making room for final potential
@@ -322,29 +343,29 @@ def walker(steps, x0, T, # simulation parameters
 
                         rad_k = xlong[k] # where on the x-axis we are biasing
 
-                        # Calculate bias contribution for this bin
-                        bias_k = w * np.exp(-(rad_k - np.array(s)) ** 2 / (2 * delta**2))
-                        total_bias = np.sum(bias_k)
+                        # A simple harmonic restraint. OG
+                        #bias_k = w * np.exp(-(rad_k - np.array(s)) ** 2 / (2 * delta**2)) #Bias(rads) and length increases each hfreq
+
+                        ##########----------HANDLING PBC OF GAUSSIAN AND SUMMATION----------##########
+                        ##########----------Minimum Image Convention for all sigmas----------##########
                         
-                        # Always add to current bin
-                        bias[k] += total_bias
-                        
-                        # Handle periodic boundary conditions properly
-                        # For bins near π, also add to corresponding bin near -π
-                        if rad_k > np.pi - 3 * delta:  # Near π boundary
-                            # Find corresponding bin near -π
-                            pbc_rad = rad_k - 2 * np.pi
-                            pbc_k = int((pbc_rad - xlong[0]) / (xlong[1] - xlong[0]))
-                            if 0 <= pbc_k < len(xlong):
-                                bias[pbc_k] += total_bias
-                        
-                        # For bins near -π, also add to corresponding bin near π  
-                        if rad_k < -np.pi + 3 * delta:  # Near -π boundary
-                            # Find corresponding bin near π
-                            pbc_rad = rad_k + 2 * np.pi
-                            pbc_k = int((pbc_rad - xlong[0]) / (xlong[1] - xlong[0]))
-                            if 0 <= pbc_k < len(xlong):
-                                bias[pbc_k] += total_bias
+                        # Calculate distance between rad_k and all s
+                        d = rad_k - np.array(s) 
+
+                        ## This is a strange use of the modulo operator to me, suggested by Cursor.
+                        ## A great article is https://blog.mattclemente.com/2019/07/12/modulus-operator-modulo-operation/
+                        ## the modulo returns the remainder of the division of d by 2*pi and is NEVER greater than 2pi.
+                        ## While this ISN'T THE periodic condition, it is translated with the final -pi to get the correct distance.
+                        ## This is an improvement over the origional code with if statements and is faster. 
+
+                        # Apply minimum image convention
+                        d = (d + np.pi) % (2 * np.pi) - np.pi
+
+
+                        # Sum the bias contributions
+                        mask = np.abs(d) <= 3 * delta # ignores sign and calculates absolute distance from PBC
+                        if np.any(mask):
+                            bias[k] += np.sum(w * np.exp(-d[mask]**2 / (2 * delta**2)))
 
 
             # append the biased potential to existing potential 
@@ -444,6 +465,7 @@ if __name__ == '__main__':
     neg_bias(summary_dict['bias'], summary_dict['q'])
     rads_time(summary_dict['q'], sim_time)
     animate_metad(summary_dict['V'][:-1], summary_dict['q'][:-1])
+    # histogram(summary_dict['q'], summary_dict['bias'])
 
     # Basic printout for performance
     logger.info("=" * 80)
@@ -462,14 +484,6 @@ if __name__ == '__main__':
     print(summary_dict['bias'])
 
     bias_array = np.array(summary_dict['bias'])
-    x = np.linspace(0, len(bias_array), len(bias_array))
-    plt.plot(x, bias_array)
-    plt.title('BIAS ARRAY AS FXN OF BIN NUMBER')
-    plt.xlabel('BIN NUMBER')
-    plt.ylabel('BIAS')
-    plt.xlim(0, 100)
-    plt.show()
-
 
 
     # UPDATED WITH US INTEGRATION
