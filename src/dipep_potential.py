@@ -1,7 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-import pickle   
+import pickle
+import os
+
+# Choose potential representation:
+#   'spline'      - Periodic cubic spline interpolation; EXACTLY matches fes-std.dat at grid points
+#   'sine_cosine' - Sine/cosine Fourier fit with min-to-zero shift (analytical form)
+POTENTIAL_MODE = 'spline'
+
 #####---Sine/cosine fit because F(-pi) == F(pi) in a truly periodic system---#####
 
 #generic function to read simple files
@@ -43,7 +50,14 @@ def sine_cosine_derivative(x, *coeffs):
         result -= (i+1) * coeffs[2*i+1] * np.sin((i+1) * x)  # Derivative of cosine
     return result
 
-phi, energy = read_fes('fes-std.dat')
+# Resolve fes-std.dat path (check src and MD)
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_fes_candidates = [
+    os.path.join(_script_dir, 'fes-std.dat'),
+    os.path.join(os.path.dirname(_script_dir), 'MD', 'fes-std.dat'),
+]
+_fes_path = next((p for p in _fes_candidates if os.path.exists(p)), _fes_candidates[0])
+phi, energy = read_fes(_fes_path)
 
 terms = range(1, 10)
 errors = []
@@ -61,17 +75,26 @@ min_error_terms = terms[np.argmin(errors)]  # Best number of terms
 # Get the best fitting coefficients
 best_params = fitted_params[np.argmin(errors)]
 
+# Min-to-zero offset for sine/cosine: shift so minimum potential is zero (FES convention)
+_x_fine = np.linspace(-np.pi, np.pi, 500)
+_min_to_zero_offset = np.min(sine_cosine_fit(_x_fine, *best_params))
+
 
 # Define the best-fitting potential function V(x)
 
 if __name__ == '__main__':
-    from V_x_functions import V_x   
+    from V_x_functions import V_x, V_x_spline
 
     ###---Save computation time by accessing and serializing your own potential---###
     ###---re-run this script to load new potential, but check V_x_functions.py---###
 
-    v_x_instance = V_x(best_params)
-    with open ("V_x_functions.pkl", 'wb') as f:
+    if POTENTIAL_MODE == 'spline':
+        v_x_instance = V_x_spline(phi, energy)
+    else:
+        v_x_instance = V_x(best_params, min_to_zero_offset=_min_to_zero_offset)
+    # Use absolute path to ensure correct file location regardless of execution context
+    pickle_file = os.path.join(os.path.dirname(__file__), 'V_x_functions.pkl')
+    with open(pickle_file, 'wb') as f:
         pickle.dump(v_x_instance, f)
 
     x = np.linspace(-np.pi, np.pi, 200) # arange -> linspace and less 
@@ -80,7 +103,7 @@ if __name__ == '__main__':
     ax.set(xlim=[-np.pi, np.pi], ylim=[-100, 100])
 
     plt.title('Alanine Dipeptide Free Energy Surface of Φ Dihedral Angle', fontsize=16)
-    plt.ylabel('Energy (kcal)', fontsize=15)
+    plt.ylabel('Energy (kJ/mol)', fontsize=15)
     plt.xlabel('Φ (Degrees)', fontsize=15)
 
     ax.tick_params(axis='both', which='major', labelsize=14, width=1, length=4)
@@ -92,7 +115,8 @@ if __name__ == '__main__':
     plt.scatter(phi, energy, label='Metadynamics FES',
     marker='s', s=16, color='gray', alpha=0.8)
 
-    plt.plot(x, v_x_instance.potential(x), label='Best sine-cosine fit', color='dodgerblue')
+    _fit_label = 'Spline (exact match)' if POTENTIAL_MODE == 'spline' else 'Sine-cosine fit (min-to-zero)'
+    plt.plot(x, v_x_instance.potential(x), label=_fit_label, color='dodgerblue')
     plt.plot(x, v_x_instance.force(x), label='F(x)', color='red')
     
     fig.tight_layout()
